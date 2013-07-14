@@ -272,10 +272,9 @@ BOOL cef_main_window::HandleClose()
 {
     SaveWindowRect();
 
-	if (gHandler.get()) 
-	{
-        // If we already initiated the browser closing, then let default window proc handle it.
-        HWND hwnd = SafeGetCefBrowserHwnd();
+	CefWindowHandle hwnd = SafeGetCefBrowserHwnd();
+    if (hwnd)
+    {
         BOOL closing = (BOOL)::GetProp(hwnd, ::gCefWindowClosingPropName);
         if (closing) 
 		{
@@ -285,8 +284,8 @@ BOOL cef_main_window::HandleClose()
 		{
 			gHandler->QuittingApp(true);
 			gHandler->DispatchCloseToNextBrowser();
+    		return TRUE;
 		}
-		return TRUE;
     } 
 		
 	return FALSE;
