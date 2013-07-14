@@ -48,11 +48,19 @@ protected:
 	BOOL HandleCommand(UINT commandId);
 	BOOL HandleExitCommand();
     BOOL HandlePaint();
+    BOOL HandleNcPaint(HRGN hUpdateRegion);
     BOOL HandleGetMinMaxInfo(LPMINMAXINFO mmi);
 
 	virtual void PostNonClientDestory();
 
 private:
+    void UpdateNonClientArea();
+    void DoPaintNonClientArea(HDC hdc);
+    void InitDeviceContext(HDC hdc);
+    void DoDrawFrame(HDC hdc);
+    void DoDrawSystemIcon(HDC hdc);
+
+
 	static ATOM RegisterWndClass();
 };
 

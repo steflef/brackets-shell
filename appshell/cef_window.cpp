@@ -184,3 +184,39 @@ LRESULT cef_window::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 
 	return lr;
 }
+
+void cef_window::ScreenToNonClient(RECT& rect) 
+{
+    WINDOWINFO wi ;
+    ::ZeroMemory ( &wi, sizeof ( wi ) ) ;
+    wi.cbSize = sizeof ( wi ) ;
+    GetWindowInfo ( &wi ) ;
+
+    int height = rect.bottom - rect.top;
+    int width = rect.right - rect.left;
+
+    rect.top = rect.top - wi.rcWindow.top;
+    rect.left = rect.left - wi.rcWindow.left;
+    rect.bottom = rect.top + height;
+    rect.right = rect.left + width;
+}
+
+// Computes the client rect relative to the Window Rect
+//	Used to compute the clipping region, etc...
+void cef_window::ComputeLogicalClientRect(RECT& rectClient)
+{
+    WINDOWINFO wi ;
+    ::ZeroMemory ( &wi, sizeof ( wi ) ) ;
+    wi.cbSize = sizeof ( wi ) ;
+    GetWindowInfo ( &wi ) ;
+
+    ::CopyRect(&rectClient, &wi.rcClient);
+
+    int height = wi.rcClient.bottom - wi.rcClient.top;
+    int width = wi.rcClient.right - wi.rcClient.left;
+
+    rectClient.top = wi.rcClient.top - wi.rcWindow.top;
+    rectClient.left = wi.rcClient.left - wi.rcWindow.left;
+    rectClient.bottom = rectClient.top + height;
+    rectClient.right = rectClient.left + width;
+}

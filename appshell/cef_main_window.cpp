@@ -27,6 +27,7 @@ extern HINSTANCE	            gInstance;
 extern CefRefPtr<ClientHandler> gHandler;
 
 // constants
+// TODO: prefix with k instead of g
 static const wchar_t		gWindowClassname[] = L"CEFCLIENT";
 static const wchar_t		gWindowPostionFolder[] = L"Window Position";
 
@@ -44,9 +45,14 @@ static const wchar_t		gPrefShowState[] = L"Show State";
 static const long			gMinWindowWidth = 390;
 static const long			gMinWindowHeight = 200;
 
-
+static const int            kBorderThickness = 4;
 // Globals
 wchar_t                     gCefWindowClosingPropName[] = L"CLOSING";
+
+// Helpers
+static __inline int RectWidth(const RECT &r) { return r.right - r.left; }
+static __inline int RectHeight(const RECT &r) { return r.bottom - r.top; }
+
 
 ATOM cef_main_window::RegisterWndClass()
 {
@@ -134,7 +140,6 @@ BOOL cef_main_window::HandleCreate()
     gHandler->SetMainHwnd(mWnd);
 
     RECT rect;
-    int x = 0;
 
     GetClientRect(&rect);
 
@@ -188,6 +193,68 @@ BOOL cef_main_window::HandlePaint()
     return TRUE;
 }
 
+void cef_main_window::DoDrawFrame(HDC hdc)
+{
+    RECT rectWindow;
+    GetWindowRect(&rectWindow);
+
+    RECT rectFrame;
+
+    ::SetRectEmpty(&rectFrame);
+
+    rectFrame.bottom = rectWindow.bottom - rectWindow.top;
+    rectFrame.right = rectWindow.right - rectWindow.left;
+
+    // TODO: cache this brush and use const color
+    HBRUSH br = ::CreateSolidBrush(RGB(59, 62, 64));
+    FillRect(hdc, &rectFrame, br);
+    DeleteObject(br);
+}
+
+void cef_main_window::DoDrawSystemIcon(HDC hdc)
+{
+    // TODO: cache this icon
+    HICON hSystemIcon = reinterpret_cast<HICON>(GetClassLongPtr(GCLP_HICONSM));
+    if (hSystemIcon == 0)
+        hSystemIcon = reinterpret_cast<HICON>(GetClassLongPtr(GCLP_HICON));
+
+    ::DrawIconEx(hdc, kBorderThickness, kBorderThickness, hSystemIcon, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0, NULL, DI_NORMAL);
+
+}
+
+void cef_main_window::InitDeviceContext(HDC hdc)
+{
+    RECT rectClipClient;
+    SetRectEmpty(&rectClipClient);
+    ComputeLogicalClientRect(rectClipClient);
+
+    // exclude the client area to reduce flicker
+    ::ExcludeClipRect(hdc, rectClipClient.left, rectClipClient.top, rectClipClient.right, rectClipClient.bottom);
+}
+
+void cef_main_window::DoPaintNonClientArea(HDC hdc)
+{
+    InitDeviceContext(hdc);
+    DoDrawFrame(hdc);
+    DoDrawSystemIcon(hdc);
+}
+
+void cef_main_window::UpdateNonClientArea()
+{
+    HDC hdc = GetWindowDC();
+    DoPaintNonClientArea(hdc);
+    ReleaseDC(hdc);
+}
+
+BOOL cef_main_window::HandleNcPaint(HRGN hUpdateRegion)
+{
+    HDC hdc = GetDCEx(hUpdateRegion, DCX_WINDOW|DCX_INTERSECTRGN|0x10000);
+    DoPaintNonClientArea(hdc);
+    ReleaseDC(hdc);
+
+    return TRUE;
+}
+
 BOOL cef_main_window::HandleGetMinMaxInfo(LPMINMAXINFO mmi)
 {
 	mmi->ptMinTrackSize.x = ::gMinWindowWidth;
@@ -227,7 +294,8 @@ BOOL cef_main_window::HandleClose()
 
 BOOL cef_main_window::HandleExitCommand()
 {
-	if (gHandler.get()) {
+	if (gHandler.get()) 
+    {
 		gHandler->QuittingApp(true);
 		gHandler->DispatchCloseToNextBrowser();
 	}
@@ -241,7 +309,7 @@ BOOL cef_main_window::HandleExitCommand()
 
 BOOL cef_main_window::HandleSize(BOOL bMinimize)
 {
-	// Minimizing resizes the window to 0x0 which causes our layout to go all
+	// Minimizing the window to 0x0 which causes our layout to go all
 	// screwy, so we just ignore it.
 	CefWindowHandle hwnd = SafeGetCefBrowserHwnd();
 	if (hwnd && !bMinimize) 
@@ -253,9 +321,9 @@ BOOL cef_main_window::HandleSize(BOOL bMinimize)
 		hdwp = DeferWindowPos(hdwp, hwnd, NULL, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER);
 		EndDeferWindowPos(hdwp);
 	}
+
       
 	return FALSE;
-
 }
 
 BOOL cef_main_window::HandleInitMenuPopup(HMENU hMenuPopup)
@@ -306,7 +374,7 @@ LRESULT cef_main_window::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_ERASEBKGND:
 		if (HandleEraseBackground())
-			return 0L;
+			return 1L;
 		break;
 	case WM_SETFOCUS:
 		if (HandleSetFocus((HWND)wParam))
@@ -340,9 +408,29 @@ LRESULT cef_main_window::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 		if (HandleCommand(LOWORD(wParam)))
 			return 0L;
 		break;
-	}
+    case WM_NCPAINT:
+        if (HandleNcPaint((HRGN)wParam))
+            return 0L;
+        break;
+    }
 
-    return cef_window::WindowProc(message, wParam, lParam);
+    LRESULT lr = cef_window::WindowProc(message, wParam, lParam);
+    
+    // post default message processing
+    switch (message)
+    {
+    case WM_WINDOWPOSCHANGING:
+    case WM_WINDOWPOSCHANGED:
+    case WM_MOVE:
+    case WM_SIZE:
+    case WM_SIZING:
+    case WM_EXITSIZEMOVE:
+    case WM_NCACTIVATE:
+    case WM_ACTIVATE:
+        UpdateNonClientArea();
+    }
+
+    return lr;
 }
 
 

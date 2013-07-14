@@ -35,6 +35,9 @@ public:
     virtual LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam);
     LRESULT DefaultWindowProc(UINT message, WPARAM wParam, LPARAM lParam);
 
+    HWND GetSafeWnd() 
+    { return (this != NULL) ? mWnd : NULL; }
+
 	HMENU GetMenu() 
 	{ return ::GetMenu(mWnd); }
 
@@ -77,11 +80,29 @@ public:
     LONG SetWindowLongPtr(int nIndex, LONG dwNewLong) 
     { return ::SetWindowLongPtr(mWnd, nIndex, dwNewLong); }
 
+    LONG GetClassLongPtr(int nIndex)
+    { return ::GetClassLongPtr(mWnd, nIndex); }
+
+    BOOL GetWindowInfo (PWINDOWINFO pwi) 
+    { return ::GetWindowInfo (mWnd, pwi); }
+
     void DragAcceptFiles(BOOL fAccept)
     { return ::DragAcceptFiles(mWnd, fAccept); }
 
     BOOL ShowWindow(int nCmdShow)
     { return ::ShowWindow(mWnd, nCmdShow); }
+
+    HDC GetDCEx(HRGN hrgnClip, DWORD dwFlags)
+    { return ::GetDCEx(mWnd, hrgnClip, dwFlags); }
+
+    HDC GetWindowDC()
+    { return ::GetWindowDC(mWnd); }
+
+    int ReleaseDC(HDC dc)
+    { return ::ReleaseDC(mWnd, dc); }
+
+    BOOL SetWindowPos(cef_window* insertAfter, int x, int y, int cx, int cy, UINT uFlags) 
+    { return ::SetWindowPos(mWnd, insertAfter->GetSafeWnd(), x, y, cx, cy, uFlags); }
 
 protected:
     HWND mWnd;
@@ -89,5 +110,8 @@ protected:
 
 	BOOL HandleNonClientDestroy();
 	virtual void PostNonClientDestory();
+
+    void ComputeLogicalClientRect(RECT& rectClient);
+    void ScreenToNonClient(RECT& rect);
 };
 
