@@ -49,11 +49,6 @@ static const int            kBorderThickness = 4;
 // Globals
 wchar_t                     gCefWindowClosingPropName[] = L"CLOSING";
 
-// Helpers
-static __inline int RectWidth(const RECT &r) { return r.right - r.left; }
-static __inline int RectHeight(const RECT &r) { return r.bottom - r.top; }
-
-
 ATOM cef_main_window::RegisterWndClass()
 {
 	static ATOM classAtom = 0;
@@ -234,6 +229,7 @@ void cef_main_window::InitDeviceContext(HDC hdc)
 
 void cef_main_window::DoPaintNonClientArea(HDC hdc)
 {
+    // TODO: buffer this drawing to reduce flicker
     InitDeviceContext(hdc);
     DoDrawFrame(hdc);
     DoDrawSystemIcon(hdc);
@@ -317,7 +313,7 @@ BOOL cef_main_window::HandleSize(BOOL bMinimize)
 		GetClientRect(&rect);
 
 		HDWP hdwp = ::BeginDeferWindowPos(1);
-		hdwp = ::DeferWindowPos(hdwp, hwnd, NULL, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER);
+        hdwp = ::DeferWindowPos(hdwp, hwnd, NULL, rect.left, rect.top, ::RectWidth(rect), ::RectHeight(rect), SWP_NOZORDER);
 		::EndDeferWindowPos(hdwp);
 	}
 
@@ -450,8 +446,8 @@ void cef_main_window::SaveWindowRect()
 			{
 				::WriteRegistryInt(gWindowPostionFolder, gPrefLeft,   rect.left);
 				::WriteRegistryInt(gWindowPostionFolder, gPrefTop,    rect.top);
-				::WriteRegistryInt(gWindowPostionFolder, gPrefWidth,  rect.right - rect.left);
-				::WriteRegistryInt(gWindowPostionFolder, gPrefHeight, rect.bottom - rect.top);
+                ::WriteRegistryInt(gWindowPostionFolder, gPrefWidth,  ::RectWidth(rect));
+				::WriteRegistryInt(gWindowPostionFolder, gPrefHeight, ::RectHeight(rect));
 			}
 
 			if (wp.showCmd == SW_MAXIMIZE)

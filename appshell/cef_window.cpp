@@ -192,8 +192,8 @@ void cef_window::ScreenToNonClient(RECT& rect)
     wi.cbSize = sizeof ( wi ) ;
     GetWindowInfo ( &wi ) ;
 
-    int height = rect.bottom - rect.top;
-    int width = rect.right - rect.left;
+    int height = ::RectHeight(rect);
+    int width = ::RectWidth(rect);
 
     rect.top = rect.top - wi.rcWindow.top;
     rect.left = rect.left - wi.rcWindow.left;
@@ -212,8 +212,8 @@ void cef_window::ComputeLogicalClientRect(RECT& rectClient)
 
     ::CopyRect(&rectClient, &wi.rcClient);
 
-    int height = wi.rcClient.bottom - wi.rcClient.top;
-    int width = wi.rcClient.right - wi.rcClient.left;
+    int height = ::RectHeight(wi.rcClient);
+    int width = ::RectWidth(wi.rcClient);
 
     rectClient.top = wi.rcClient.top - wi.rcWindow.top;
     rectClient.left = wi.rcClient.left - wi.rcWindow.left;

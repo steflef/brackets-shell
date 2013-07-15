@@ -23,6 +23,10 @@
 class cef_window;
 class cef_menu;
 
+// Helpers
+static __inline int RectWidth(const RECT &r) { return r.right - r.left; }
+static __inline int RectHeight(const RECT &r) { return r.bottom - r.top; }
+
 class cef_window
 {
 public:
