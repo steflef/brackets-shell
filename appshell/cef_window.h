@@ -42,32 +42,32 @@ public:
     HWND GetSafeWnd() 
     { return (this != NULL) ? mWnd : NULL; }
 
-	HMENU GetMenu() 
-	{ return ::GetMenu(mWnd); }
+    HMENU GetMenu() 
+    { return ::GetMenu(mWnd); }
 
-	BOOL UpdateWindow()
-	{ return ::UpdateWindow(mWnd); }
+    BOOL UpdateWindow()
+    { return ::UpdateWindow(mWnd); }
 
-	BOOL GetWindowPlacement(LPWINDOWPLACEMENT wp)
-	{ return ::GetWindowPlacement(mWnd, wp); }
+    BOOL GetWindowPlacement(LPWINDOWPLACEMENT wp)
+    { return ::GetWindowPlacement(mWnd, wp); }
 
-	BOOL SetWindowPlacement(LPWINDOWPLACEMENT wp)
-	{ return ::SetWindowPlacement(mWnd, wp); }
+    BOOL SetWindowPlacement(LPWINDOWPLACEMENT wp)
+    { return ::SetWindowPlacement(mWnd, wp); }
 
-	BOOL GetWindowRect(LPRECT r)
-	{ return ::GetWindowRect(mWnd, r); }
+    BOOL GetWindowRect(LPRECT r)
+    { return ::GetWindowRect(mWnd, r); }
 
-	BOOL GetClientRect(LPRECT r)
-	{ return ::GetClientRect(mWnd, r); }
+    BOOL GetClientRect(LPRECT r)
+    { return ::GetClientRect(mWnd, r); }
 
-	HDC BeginPaint(PAINTSTRUCT* ps)
-	{ return ::BeginPaint(mWnd, ps); }
+    HDC BeginPaint(PAINTSTRUCT* ps)
+    { return ::BeginPaint(mWnd, ps); }
 
-	BOOL EndPaint(PAINTSTRUCT* ps) 
-	{ return ::EndPaint(mWnd, ps); }
+    BOOL EndPaint(PAINTSTRUCT* ps) 
+    { return ::EndPaint(mWnd, ps); }
 
-	BOOL DestroyWindow()
-	{ return ::DestroyWindow(mWnd); }
+    BOOL DestroyWindow()
+    { return ::DestroyWindow(mWnd); }
 
     BOOL SetProp(LPCWSTR lpString, HANDLE hData)
     { return ::SetProp(mWnd, lpString, hData); }
@@ -118,8 +118,8 @@ protected:
     HWND mWnd;
     WNDPROC mSuperWndProc;
 
-	BOOL HandleNonClientDestroy();
-	virtual void PostNonClientDestory();
+    BOOL HandleNonClientDestroy();
+    virtual void PostNonClientDestory();
 
     void ComputeLogicalClientRect(RECT& rectClient);
     void ScreenToNonClient(RECT& rect);

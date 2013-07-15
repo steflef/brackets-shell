@@ -61,7 +61,6 @@ static LRESULT CALLBACK _HookProc(int code, WPARAM wParam, LPARAM lParam)
     {
         HWND hWnd = (HWND)wParam;
         gHookData.mWindow->SubclassWindow(hWnd);
-        gHookData.Reset();
     }
 
     return CallNextHookEx(gHookData.mOldHook, code, wParam, lParam);
@@ -98,10 +97,8 @@ static LRESULT CALLBACK _WindowProc (HWND hWnd, UINT message, WPARAM wParam, LPA
 bool cef_window::SubclassWindow(HWND hWnd) 
 {
     if (::GetProp(hWnd, ::gCefClientWindowPropName) != NULL) 
-    {
         return false;
-    }
-	mWnd = hWnd;
+    mWnd = hWnd;
     mSuperWndProc = (WNDPROC)SetWindowLongPtr(GWLP_WNDPROC, (LONG_PTR)&_WindowProc);
     SetProp(::gCefClientWindowPropName, (HANDLE)this);
     return true;
@@ -147,17 +144,17 @@ LRESULT cef_window::DefaultWindowProc(UINT message, WPARAM wParam, LPARAM lParam
 
 BOOL cef_window::HandleNonClientDestroy()
 {
-	WNDPROC superWndProc = WNDPROC(GetWindowLongPtr(GWLP_WNDPROC));
+    WNDPROC superWndProc = WNDPROC(GetWindowLongPtr(GWLP_WNDPROC));
 
-	RemoveProp(::gCefClientWindowPropName);
+    RemoveProp(::gCefClientWindowPropName);
 
-	DefaultWindowProc(WM_NCDESTROY, 0, 0);
+    DefaultWindowProc(WM_NCDESTROY, 0, 0);
 	
-	if ((WNDPROC(GetWindowLongPtr(GWLP_WNDPROC)) == superWndProc) && (mSuperWndProc != NULL))
-		SetWindowLongPtr(GWLP_WNDPROC, reinterpret_cast<INT_PTR>(mSuperWndProc));
+    if ((WNDPROC(GetWindowLongPtr(GWLP_WNDPROC)) == superWndProc) && (mSuperWndProc != NULL))
+	    SetWindowLongPtr(GWLP_WNDPROC, reinterpret_cast<INT_PTR>(mSuperWndProc));
 	
-	mSuperWndProc = NULL;
-	return TRUE;
+    mSuperWndProc = NULL;
+    return TRUE;
 }
 
 void cef_window::PostNonClientDestory()
@@ -168,21 +165,21 @@ void cef_window::PostNonClientDestory()
 LRESULT cef_window::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch(message)
-	{
-		case WM_NCDESTROY:
-			if (HandleNonClientDestroy())
-				return 0L;
-			break;
-	}
-	
-	LRESULT lr = DefaultWindowProc(message, wParam, lParam);
-	
-	if (message == WM_NCDESTROY) 
     {
-		PostNonClientDestory();
+	    case WM_NCDESTROY:
+		    if (HandleNonClientDestroy())
+			    return 0L;
+		    break;
+    }
+	
+    LRESULT lr = DefaultWindowProc(message, wParam, lParam);
+	
+    if (message == WM_NCDESTROY) 
+    {
+	    PostNonClientDestory();
     }
 
-	return lr;
+    return lr;
 }
 
 void cef_window::ScreenToNonClient(RECT& rect) 
