@@ -24,7 +24,7 @@
 #include <algorithm>
 #include <ShellAPI.h>
 #include <ShlObj.h>
-
+ 
 #include "cef_main_window.h"
 
 // Global Variables:
@@ -123,132 +123,131 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
                      LPTSTR    lpCmdLine,
                      int       nCmdShow) 
 {
-    UNREFERENCED_PARAMETER(hPrevInstance);
-    UNREFERENCED_PARAMETER(lpCmdLine);
+  UNREFERENCED_PARAMETER(hPrevInstance);
+  UNREFERENCED_PARAMETER(lpCmdLine);
 
     gAppStartupTime = timeGetTime();
 
-    CefMainArgs main_args(hInstance);
-    CefRefPtr<ClientApp> app(new ClientApp);
+  CefMainArgs main_args(hInstance);
+  CefRefPtr<ClientApp> app(new ClientApp);
 
-    // Execute the secondary process, if any.
-    int exit_code = CefExecuteProcess(main_args, app.get());
-    if (exit_code >= 0)
-        return exit_code;
+  // Execute the secondary process, if any.
+  int exit_code = CefExecuteProcess(main_args, app.get());
+  if (exit_code >= 0)
+    return exit_code;
 
-    // Retrieve the current working directory.
+  // Retrieve the current working directory.
     if (_getcwd(gWorkingDir, MAX_PATH) == NULL)
         gWorkingDir[0] = 0;
 
-    // Parse command line arguments. The passed in values are ignored on Windows.
-    AppInitCommandLine(0, NULL);
+  // Parse command line arguments. The passed in values are ignored on Windows.
+  AppInitCommandLine(0, NULL);
 
-    CefSettings settings;
+  CefSettings settings;
 
-    // Populate the settings based on command line arguments.
-    AppGetSettings(settings, app);
+  // Populate the settings based on command line arguments.
+  AppGetSettings(settings, app);
 
-    // Check command
+  // Check command
     if (CefString(&settings.cache_path).length() == 0)
-	    CefString(&settings.cache_path) = AppGetCachePath();
+	  CefString(&settings.cache_path) = AppGetCachePath();
 
-    // Initialize CEF.
-    CefInitialize(main_args, settings, app.get());
+  // Initialize CEF.
+  CefInitialize(main_args, settings, app.get());
 
-    CefRefPtr<CefCommandLine> cmdLine = AppGetCommandLine();
+  CefRefPtr<CefCommandLine> cmdLine = AppGetCommandLine();
     if (cmdLine->HasSwitch(cefclient::kStartupPath)) 
     {
 	    wcscpy(gInitialUrl, cmdLine->GetSwitchValue(cefclient::kStartupPath).c_str());
-    }
+  }
     else 
     {
-        // If the shift key is not pressed, look for the index.html file 
+	// If the shift key is not pressed, look for the index.html file 
         if (GetAsyncKeyState(VK_SHIFT) == 0) 
         {
-            // Get the full pathname for the app. We look for the index.html
-            // file relative to this location.
-            wchar_t appPath[MAX_PATH];
-            wchar_t *pathRoot;
-            GetModuleFileName(NULL, appPath, MAX_PATH);
+	// Get the full pathname for the app. We look for the index.html
+	// file relative to this location.
+	wchar_t appPath[MAX_PATH];
+	wchar_t *pathRoot;
+	GetModuleFileName(NULL, appPath, MAX_PATH);
 
-            // Strip the .exe filename (and preceding "\") from the appPath
-            // and store in pathRoot
-            pathRoot = wcsrchr(appPath, '\\');
+	// Strip the .exe filename (and preceding "\") from the appPath
+	// and store in pathRoot
+	pathRoot = wcsrchr(appPath, '\\');
 
-            // Look for .\dev\src\index.html first
-            wcscpy(pathRoot, L"\\dev\\src\\index.html");
+	// Look for .\dev\src\index.html first
+	wcscpy(pathRoot, L"\\dev\\src\\index.html");
 
-            // If the file exists, use it
+	// If the file exists, use it
             if (GetFileAttributes(appPath) != INVALID_FILE_ATTRIBUTES) 
 	            wcscpy(gInitialUrl, appPath);
 
-            if (!wcslen(gInitialUrl)) 
-            {
-	            // Look for .\www\index.html next
-	            wcscpy(pathRoot, L"\\www\\index.html");
+	if (!wcslen(szInitialUrl)) {
+		// Look for .\www\index.html next
+		wcscpy(pathRoot, L"\\www\\index.html");
 	            if (GetFileAttributes(appPath) != INVALID_FILE_ATTRIBUTES)
 	                wcscpy(gInitialUrl, appPath);
-            }
-        }
-    }
+	}
+	}
+  }
 
     if (!wcslen(gInitialUrl)) 
     {
-        // If we got here, either the startup file couldn't be found, or the user pressed the
-        // shift key while launching. Prompt to select the index.html file.
-        OPENFILENAME ofn = {0};
-        ofn.lStructSize = sizeof(ofn);
+      // If we got here, either the startup file couldn't be found, or the user pressed the
+      // shift key while launching. Prompt to select the index.html file.
+      OPENFILENAME ofn = {0};
+      ofn.lStructSize = sizeof(ofn);
         ofn.lpstrFile = gInitialUrl;
-        ofn.nMaxFile = MAX_PATH;
-        ofn.lpstrFilter = L"Web Files\0*.htm;*.html\0\0";
-        ofn.lpstrTitle = L"Please select the " APP_NAME L" index.html file.";
-        ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR | OFN_EXPLORER;
+      ofn.nMaxFile = MAX_PATH;
+      ofn.lpstrFilter = L"Web Files\0*.htm;*.html\0\0";
+      ofn.lpstrTitle = L"Please select the " APP_NAME L" index.html file.";
+      ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR | OFN_EXPLORER;
 
-        if (!GetOpenFileName(&ofn)) {
-            // User cancelled, exit the app
-            CefShutdown();
-            return 0;
-        }
-    }
+      if (!GetOpenFileName(&ofn)) {
+        // User cancelled, exit the app
+        CefShutdown();
+        return 0;
+      }
+  }
 
-    // Perform application initialization
-    if (!InitInstance (hInstance, nCmdShow))
-        return FALSE;
+  // Perform application initialization
+  if (!InitInstance (hInstance, nCmdShow))
+    return FALSE;
 
-    // Start the node server process
-    startNodeProcess();
+  // Start the node server process
+  startNodeProcess();
 
-    gFilesToOpen = GetFilenamesFromCommandLine();
+  gFilesToOpen = GetFilenamesFromCommandLine();
 
-    int result = 0;
+  int result = 0;
 
     if (!settings.multi_threaded_message_loop) 
     {
-        // Run the CEF message loop. This function will block until the application
-        // recieves a WM_QUIT message.
-        CefRunMessageLoop();
+    // Run the CEF message loop. This function will block until the application
+    // recieves a WM_QUIT message.
+    CefRunMessageLoop();
     } 
     else 
     {
-        MSG msg;
+    MSG msg;
 
-        // Run the application message loop.
-        while (GetMessage(&msg, NULL, 0, 0)) {
+    // Run the application message loop.
+    while (GetMessage(&msg, NULL, 0, 0)) {
             if (!TranslateAccelerator(msg.hwnd, gAccelTable, &msg)) {
-                TranslateMessage(&msg);
-                DispatchMessage(&msg);
-            }
-        }
-
-        result = static_cast<int>(msg.wParam);
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+      }
     }
 
-    OnBeforeShutdown();
+    result = static_cast<int>(msg.wParam);
+  }
 
-    // Shut down CEF.
-    CefShutdown();
+  OnBeforeShutdown();
 
-    return result;
+  // Shut down CEF.
+  CefShutdown();
+
+  return result;
 }
 
 //
@@ -272,17 +271,17 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) {
 
 std::string AppGetWorkingDirectory() {
     return gWorkingDir;
-}
+    }
 
 CefString AppGetInitialURL() {
     return gInitialUrl;    
 }
 
 CefString AppGetCachePath() {
-    std::wstring cachePath = ClientApp::AppGetSupportDirectory();
-    cachePath +=  L"/cef_data";
+  std::wstring cachePath = ClientApp::AppGetSupportDirectory();
+  cachePath +=  L"/cef_data";
 
-    return CefString(cachePath);
+  return CefString(cachePath);
 }
 
 // Helper function for AppGetProductVersionString. Reads version info from
