@@ -5,7 +5,7 @@
  *
  *  Copyright 2013 Adobe Systems Incorporated
  *  All Rights Reserved.
- *
+ *d
  * NOTICE:  All information contained herein is, and remains
  * the property of Adobe Systems Incorporated and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -48,6 +48,11 @@ static const long			gMinWindowHeight = 200;
 static const int            kBorderThickness = 4;
 // Globals
 wchar_t                     gCefWindowClosingPropName[] = L"CLOSING";
+
+// undefined windows constants for drawing
+#ifndef DCX_USESTYLE
+#define DCX_USESTYLE 0x00010000
+#endif
 
 ATOM cef_main_window::RegisterWndClass()
 {
@@ -118,6 +123,8 @@ BOOL cef_main_window::Create()
     DragAcceptFiles(TRUE);
 	RestoreWindowPlacement(showCmd);
 	UpdateWindow();
+
+
 
     return TRUE;
 }
@@ -225,13 +232,15 @@ void cef_main_window::DoDrawSystemIcon(HDC hdc)
 
 void cef_main_window::DoDrawTitlebarText(HDC hdc)
 {
+    // TODO: cache this data
     NONCLIENTMETRICS ncm;
     ::ZeroMemory(&ncm, sizeof(ncm));
     ncm.cbSize = sizeof (ncm);
     ::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &ncm, 0);
 
-    HFONT hBoldSystemFont = ::CreateFontIndirect(&ncm.lfCaptionFont);
-    HGDIOBJ oldFont = ::SelectObject(hdc, hBoldSystemFont);        
+    // TODO: cache this font
+    HFONT hCaptionFont= ::CreateFontIndirect(&ncm.lfCaptionFont);
+    HGDIOBJ hPreviousFont = ::SelectObject(hdc, hCaptionFont);        
 
     int oldBkMode = ::SetBkMode(hdc, TRANSPARENT);
     COLORREF oldRGB = ::SetTextColor(hdc, RGB(197,197,197));
@@ -253,6 +262,12 @@ void cef_main_window::DoDrawTitlebarText(HDC hdc)
     DrawText(hdc, szCaption, cchCaption, &textRect, DT_LEFT|DT_SINGLELINE|DT_VCENTER|DT_CENTER|DT_END_ELLIPSIS|DT_NOPREFIX);
 
     delete []szCaption;
+    ::SetTextColor(hdc, oldRGB);
+    ::SetBkMode(hdc, oldBkMode);
+    ::SelectObject(hdc, hPreviousFont);
+
+    // TODO: Once we start caching the font we will need to move this to DestroyWindow()
+    ::DeleteObject(hCaptionFont);
 }
 
 
@@ -284,7 +299,7 @@ void cef_main_window::UpdateNonClientArea()
 
 BOOL cef_main_window::HandleNcPaint(HRGN hUpdateRegion)
 {
-    HDC hdc = GetDCEx(hUpdateRegion, DCX_WINDOW|DCX_INTERSECTRGN|0x10000);
+    HDC hdc = GetDCEx(hUpdateRegion, DCX_WINDOW|DCX_INTERSECTRGN|DCX_USESTYLE);
     DoPaintNonClientArea(hdc);
     ReleaseDC(hdc);
 
@@ -443,7 +458,7 @@ LRESULT cef_main_window::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 			return 0L;
 		break;
     case WM_NCPAINT:
-        if (HandleNcPaint((HRGN)wParam))
+        if (HandleNcPaint((HRGN)wParam)) 
             return 0L;
         break;
     }
@@ -463,6 +478,8 @@ LRESULT cef_main_window::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
     case WM_ACTIVATE:
     case WM_SETTEXT:
         UpdateNonClientArea();
+        break;
+
     }
 
     return lr;
