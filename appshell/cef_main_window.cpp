@@ -202,8 +202,8 @@ void cef_main_window::DoDrawFrame(HDC hdc)
 
     ::SetRectEmpty(&rectFrame);
 
-    rectFrame.bottom = rectWindow.bottom - rectWindow.top;
-    rectFrame.right = rectWindow.right - rectWindow.left;
+    rectFrame.bottom = ::RectHeight(rectWindow);
+    rectFrame.right = ::RectWidth(rectWindow);
 
     // TODO: cache this brush and use const color
     HBRUSH br = ::CreateSolidBrush(RGB(59, 62, 64));
@@ -316,12 +316,11 @@ BOOL cef_main_window::HandleSize(BOOL bMinimize)
 		RECT rect;
 		GetClientRect(&rect);
 
-		HDWP hdwp = BeginDeferWindowPos(1);
-		hdwp = DeferWindowPos(hdwp, hwnd, NULL, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER);
-		EndDeferWindowPos(hdwp);
+		HDWP hdwp = ::BeginDeferWindowPos(1);
+		hdwp = ::DeferWindowPos(hdwp, hwnd, NULL, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER);
+		::EndDeferWindowPos(hdwp);
 	}
 
-      
 	return FALSE;
 }
 
@@ -340,7 +339,7 @@ BOOL cef_main_window::HandleInitMenuPopup(HMENU hMenuPopup)
         UINT flagChecked = checked ? MF_CHECKED : MF_UNCHECKED;
         ::CheckMenuItem(hMenuPopup, id, flagChecked | MF_BYCOMMAND);
     }
-	return FALSE;
+	return TRUE;
 }
 
 
