@@ -108,6 +108,12 @@ public:
     BOOL SetWindowPos(cef_window* insertAfter, int x, int y, int cx, int cy, UINT uFlags) 
     { return ::SetWindowPos(mWnd, insertAfter->GetSafeWnd(), x, y, cx, cy, uFlags); }
 
+    int GetWindowText(LPWSTR lpString, int nMaxCount) 
+    { return ::GetWindowTextW(mWnd, lpString, nMaxCount); }
+
+    int GetWindowTextLength() 
+    { return ::GetWindowTextLengthW(mWnd); }
+
 protected:
     HWND mWnd;
     WNDPROC mSuperWndProc;

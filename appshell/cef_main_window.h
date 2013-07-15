@@ -59,7 +59,7 @@ private:
     void InitDeviceContext(HDC hdc);
     void DoDrawFrame(HDC hdc);
     void DoDrawSystemIcon(HDC hdc);
-
+    void DoDrawTitlebarText(HDC hdc);
 
 	static ATOM RegisterWndClass();
 };

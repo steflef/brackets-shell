@@ -213,9 +213,48 @@ void cef_main_window::DoDrawSystemIcon(HDC hdc)
     if (hSystemIcon == 0)
         hSystemIcon = reinterpret_cast<HICON>(GetClassLongPtr(GCLP_HICON));
 
-    ::DrawIconEx(hdc, kBorderThickness, kBorderThickness, hSystemIcon, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0, NULL, DI_NORMAL);
+    // TODO: cache this data
+    NONCLIENTMETRICS ncm;
+    ::ZeroMemory(&ncm, sizeof(ncm));
+    ncm.cbSize = sizeof (ncm);
+    ::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &ncm, 0);
+
+    ::DrawIconEx(hdc, ncm.iBorderWidth, ncm.iBorderWidth, hSystemIcon, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0, NULL, DI_NORMAL);
 
 }
+
+void cef_main_window::DoDrawTitlebarText(HDC hdc)
+{
+    NONCLIENTMETRICS ncm;
+    ::ZeroMemory(&ncm, sizeof(ncm));
+    ncm.cbSize = sizeof (ncm);
+    ::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &ncm, 0);
+
+    HFONT hBoldSystemFont = ::CreateFontIndirect(&ncm.lfCaptionFont);
+    HGDIOBJ oldFont = ::SelectObject(hdc, hBoldSystemFont);        
+
+    int oldBkMode = ::SetBkMode(hdc, TRANSPARENT);
+    COLORREF oldRGB = ::SetTextColor(hdc, RGB(197,197,197));
+
+    RECT wr;
+    GetWindowRect(&wr);
+
+    RECT textRect;
+    textRect.top = 0;
+    textRect.bottom = textRect.top + GetSystemMetrics (SM_CYCAPTION) +  ncm.iBorderWidth;
+    textRect.left = (ncm.iBorderWidth * 2) + GetSystemMetrics(SM_CXSMICON);
+    textRect.right = ::RectWidth(wr) - ncm.iBorderWidth;
+
+    int textLength = GetWindowTextLength() + 1;
+    LPWSTR szCaption = new wchar_t [textLength + 1];
+    ::ZeroMemory(szCaption, textLength + 1);
+    int cchCaption = GetWindowText(szCaption, textLength);
+
+    DrawText(hdc, szCaption, cchCaption, &textRect, DT_LEFT|DT_SINGLELINE|DT_VCENTER|DT_CENTER|DT_END_ELLIPSIS|DT_NOPREFIX);
+
+    delete []szCaption;
+}
+
 
 void cef_main_window::InitDeviceContext(HDC hdc)
 {
@@ -233,6 +272,7 @@ void cef_main_window::DoPaintNonClientArea(HDC hdc)
     InitDeviceContext(hdc);
     DoDrawFrame(hdc);
     DoDrawSystemIcon(hdc);
+    DoDrawTitlebarText(hdc);
 }
 
 void cef_main_window::UpdateNonClientArea()
@@ -421,6 +461,7 @@ LRESULT cef_main_window::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
     case WM_EXITSIZEMOVE:
     case WM_NCACTIVATE:
     case WM_ACTIVATE:
+    case WM_SETTEXT:
         UpdateNonClientArea();
     }
 
