@@ -16,43 +16,20 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Adobe Systems Incorporated.
  **************************************************************************/
-#include "cef_window.h"
+#include "cef_main_window.h"
 
-class cef_main_window : public cef_window
+class cef_main_window_vista : public cef_main_window
 {
 public:
-    cef_main_window(void);
-    virtual ~cef_main_window(void);
-
-	static HWND SafeGetCefBrowserHwnd();
-
-	BOOL Create();
-	
-	void ShowHelp();
-	void ShowAbout();
+    cef_main_window_vista();
+    virtual ~cef_main_window_vista();
 
     virtual LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam);
 
 protected:
-	void SaveWindowRect();
-	void RestoreWindowRect(int& left, int& top, int& width, int& height, int& showCmd);
-	void RestoreWindowPlacement(int showCmd);
-
-	BOOL HandleEraseBackground();
-	BOOL HandleCreate();
-	BOOL HandleSetFocus(HWND hLosingFocus);
-	BOOL HandleDestroy();
-	BOOL HandleClose();
-	BOOL HandleSize(BOOL bMinimize);
-	BOOL HandleInitMenuPopup(HMENU hMenuPopup);
-	BOOL HandleCommand(UINT commandId);
-	BOOL HandleExitCommand();
+    BOOL HandleCreate();
     BOOL HandlePaint();
-    BOOL HandleGetMinMaxInfo(LPMINMAXINFO mmi);
+    BOOL HandleActivate();
 
-	virtual void PostNonClientDestory();
     virtual void GetCefBrowserRect(RECT& rect);
-
-private:
-	static ATOM RegisterWndClass();
 };

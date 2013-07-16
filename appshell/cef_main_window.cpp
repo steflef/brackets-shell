@@ -49,10 +49,6 @@ static const int            kBorderThickness = 4;
 // Globals
 wchar_t                     gCefWindowClosingPropName[] = L"CLOSING";
 
-// undefined windows constants for drawing
-#ifndef DCX_USESTYLE
-#define DCX_USESTYLE 0x00010000
-#endif
 
 ATOM cef_main_window::RegisterWndClass()
 {
@@ -65,17 +61,14 @@ ATOM cef_main_window::RegisterWndClass()
 		::ZeroMemory (&wcex, sizeof (wcex));
 		wcex.cbSize = sizeof(WNDCLASSEX);
 
-		wcex.style         = CS_HREDRAW | CS_VREDRAW;
-		wcex.lpfnWndProc   = DefWindowProc;
-		wcex.cbClsExtra    = 0;
-		wcex.cbWndExtra    = 0;
-		wcex.hInstance     = gInstance;
-		wcex.hIcon         = LoadIcon(gInstance, MAKEINTRESOURCE(IDI_CEFCLIENT));
-		wcex.hCursor       = LoadCursor(NULL, IDC_ARROW);
+		wcex.lpfnWndProc   = ::DefWindowProc;
+		wcex.hInstance     = ::gInstance;
+		wcex.hIcon         = ::LoadIcon(gInstance, MAKEINTRESOURCE(IDI_CEFCLIENT));
+		wcex.hCursor       = ::LoadCursor(NULL, IDC_ARROW);
 		wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
 		wcex.lpszMenuName  = MAKEINTRESOURCE(menuId);
 		wcex.lpszClassName = ::gWindowClassname;
-		wcex.hIconSm       = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+		wcex.hIconSm       = ::LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
 		classAtom = RegisterClassEx(&wcex);
 	}
@@ -134,6 +127,11 @@ void cef_main_window::PostNonClientDestory()
 	delete this;
 }
 
+void cef_main_window::GetCefBrowserRect(RECT& rect)
+{
+    GetClientRect(&rect);
+}
+
 
 BOOL cef_main_window::HandleCreate() 
 {
@@ -143,7 +141,7 @@ BOOL cef_main_window::HandleCreate()
 
     RECT rect;
 
-    GetClientRect(&rect);
+    GetCefBrowserRect(rect);
 
     CefWindowInfo info;
     CefBrowserSettings settings;
@@ -195,116 +193,6 @@ BOOL cef_main_window::HandlePaint()
     return TRUE;
 }
 
-void cef_main_window::DoDrawFrame(HDC hdc)
-{
-    RECT rectWindow;
-    GetWindowRect(&rectWindow);
-
-    RECT rectFrame;
-
-    ::SetRectEmpty(&rectFrame);
-
-    rectFrame.bottom = ::RectHeight(rectWindow);
-    rectFrame.right = ::RectWidth(rectWindow);
-
-    // TODO: cache this brush and use const color
-    HBRUSH br = ::CreateSolidBrush(RGB(59, 62, 64));
-    FillRect(hdc, &rectFrame, br);
-    DeleteObject(br);
-}
-
-void cef_main_window::DoDrawSystemIcon(HDC hdc)
-{
-    // TODO: cache this icon
-    HICON hSystemIcon = reinterpret_cast<HICON>(GetClassLongPtr(GCLP_HICONSM));
-    if (hSystemIcon == 0)
-        hSystemIcon = reinterpret_cast<HICON>(GetClassLongPtr(GCLP_HICON));
-
-    // TODO: cache this data
-    NONCLIENTMETRICS ncm;
-    ::ZeroMemory(&ncm, sizeof(ncm));
-    ncm.cbSize = sizeof (ncm);
-    ::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &ncm, 0);
-
-    ::DrawIconEx(hdc, ncm.iBorderWidth, ncm.iBorderWidth, hSystemIcon, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0, NULL, DI_NORMAL);
-
-}
-
-void cef_main_window::DoDrawTitlebarText(HDC hdc)
-{
-    // TODO: cache this data
-    NONCLIENTMETRICS ncm;
-    ::ZeroMemory(&ncm, sizeof(ncm));
-    ncm.cbSize = sizeof (ncm);
-    ::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &ncm, 0);
-
-    // TODO: cache this font
-    HFONT hCaptionFont= ::CreateFontIndirect(&ncm.lfCaptionFont);
-    HGDIOBJ hPreviousFont = ::SelectObject(hdc, hCaptionFont);        
-
-    int oldBkMode = ::SetBkMode(hdc, TRANSPARENT);
-    COLORREF oldRGB = ::SetTextColor(hdc, RGB(197,197,197));
-
-    RECT wr;
-    GetWindowRect(&wr);
-
-    RECT textRect;
-    textRect.top = 0;
-    textRect.bottom = textRect.top + GetSystemMetrics (SM_CYCAPTION) +  ncm.iBorderWidth;
-    textRect.left = (ncm.iBorderWidth * 2) + GetSystemMetrics(SM_CXSMICON);
-    textRect.right = ::RectWidth(wr) - ncm.iBorderWidth;
-
-    int textLength = GetWindowTextLength() + 1;
-    LPWSTR szCaption = new wchar_t [textLength + 1];
-    ::ZeroMemory(szCaption, textLength + 1);
-    int cchCaption = GetWindowText(szCaption, textLength);
-
-    DrawText(hdc, szCaption, cchCaption, &textRect, DT_LEFT|DT_SINGLELINE|DT_VCENTER|DT_CENTER|DT_END_ELLIPSIS|DT_NOPREFIX);
-
-    delete []szCaption;
-    ::SetTextColor(hdc, oldRGB);
-    ::SetBkMode(hdc, oldBkMode);
-    ::SelectObject(hdc, hPreviousFont);
-
-    // TODO: Once we start caching the font we will need to move this to DestroyWindow()
-    ::DeleteObject(hCaptionFont);
-}
-
-
-void cef_main_window::InitDeviceContext(HDC hdc)
-{
-    RECT rectClipClient;
-    SetRectEmpty(&rectClipClient);
-    ComputeLogicalClientRect(rectClipClient);
-
-    // exclude the client area to reduce flicker
-    ::ExcludeClipRect(hdc, rectClipClient.left, rectClipClient.top, rectClipClient.right, rectClipClient.bottom);
-}
-
-void cef_main_window::DoPaintNonClientArea(HDC hdc)
-{
-    // TODO: buffer this drawing to reduce flicker
-    InitDeviceContext(hdc);
-    DoDrawFrame(hdc);
-    DoDrawSystemIcon(hdc);
-    DoDrawTitlebarText(hdc);
-}
-
-void cef_main_window::UpdateNonClientArea()
-{
-    HDC hdc = GetWindowDC();
-    DoPaintNonClientArea(hdc);
-    ReleaseDC(hdc);
-}
-
-BOOL cef_main_window::HandleNcPaint(HRGN hUpdateRegion)
-{
-    HDC hdc = GetDCEx(hUpdateRegion, DCX_WINDOW|DCX_INTERSECTRGN|DCX_USESTYLE);
-    DoPaintNonClientArea(hdc);
-    ReleaseDC(hdc);
-
-    return TRUE;
-}
 
 BOOL cef_main_window::HandleGetMinMaxInfo(LPMINMAXINFO mmi)
 {
@@ -413,79 +301,6 @@ BOOL cef_main_window::HandleCommand(UINT commandId)
 	return FALSE;
 }
 
-LRESULT cef_main_window::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
-{
-	switch (message) 
-	{
-	case WM_CREATE:
-		if (HandleCreate())
-			return 0L;
-		break;
-	case WM_ERASEBKGND:
-		if (HandleEraseBackground())
-			return 1L;
-		break;
-	case WM_SETFOCUS:
-		if (HandleSetFocus((HWND)wParam))
-			return 0L;
-		break;
-	case WM_PAINT:
-		if (HandlePaint())
-			return 0L;
-		break;
-	case WM_GETMINMAXINFO:
-		if (HandleGetMinMaxInfo((LPMINMAXINFO) lParam))
-			return 0L;
-		break;
-	case WM_DESTROY:
-		if (HandleDestroy())
-			return 0L;
-		break;
-	case WM_CLOSE:
-		if (HandleClose())
-			return 0L;
-		break;
-	case WM_SIZE:
-		if (HandleSize(wParam == SIZE_MINIMIZED))
-			return 0L;
-		break;
-	case WM_INITMENUPOPUP:
-		if (HandleInitMenuPopup((HMENU)wParam))
-			return 0L;
-		break;
-	case WM_COMMAND:
-		if (HandleCommand(LOWORD(wParam)))
-			return 0L;
-		break;
-    case WM_NCPAINT:
-        if (HandleNcPaint((HRGN)wParam)) 
-            return 0L;
-        break;
-    }
-
-    LRESULT lr = cef_window::WindowProc(message, wParam, lParam);
-    
-    // post default message processing
-    switch (message)
-    {
-    case WM_WINDOWPOSCHANGING:
-    case WM_WINDOWPOSCHANGED:
-    case WM_MOVE:
-    case WM_SIZE:
-    case WM_SIZING:
-    case WM_EXITSIZEMOVE:
-    case WM_NCACTIVATE:
-    case WM_ACTIVATE:
-    case WM_SETTEXT:
-        UpdateNonClientArea();
-        break;
-
-    }
-
-    return lr;
-}
-
-
 void cef_main_window::SaveWindowRect()
 {
 	WINDOWPLACEMENT wp;
@@ -564,4 +379,56 @@ void cef_main_window::RestoreWindowPlacement(int showCmd)
 	}
 
     ShowWindow(showCmd);
+}
+
+
+LRESULT cef_main_window::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message) 
+	{
+	case WM_CREATE:
+		if (HandleCreate())
+			return 0L;
+		break;
+	case WM_ERASEBKGND:
+		if (HandleEraseBackground())
+			return 1L;
+		break;
+	case WM_SETFOCUS:
+		if (HandleSetFocus((HWND)wParam))
+			return 0L;
+		break;
+	case WM_PAINT:
+		if (HandlePaint())
+			return 0L;
+		break;
+	case WM_GETMINMAXINFO:
+		if (HandleGetMinMaxInfo((LPMINMAXINFO) lParam))
+			return 0L;
+		break;
+	case WM_DESTROY:
+		if (HandleDestroy())
+			return 0L;
+		break;
+	case WM_CLOSE:
+		if (HandleClose())
+			return 0L;
+		break;
+	case WM_SIZE:
+		if (HandleSize(wParam == SIZE_MINIMIZED))
+			return 0L;
+		break;
+	case WM_INITMENUPOPUP:
+		if (HandleInitMenuPopup((HMENU)wParam))
+			return 0L;
+		break;
+	case WM_COMMAND:
+		if (HandleCommand(LOWORD(wParam)))
+			return 0L;
+		break;
+    }
+
+    LRESULT lr = cef_window::WindowProc(message, wParam, lParam);
+
+    return lr;
 }

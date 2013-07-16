@@ -16,43 +16,24 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Adobe Systems Incorporated.
  **************************************************************************/
-#include "cef_window.h"
+#include "cef_main_window.h"
 
-class cef_main_window : public cef_window
+class cef_main_window_xp : public cef_main_window
 {
 public:
-    cef_main_window(void);
-    virtual ~cef_main_window(void);
-
-	static HWND SafeGetCefBrowserHwnd();
-
-	BOOL Create();
-	
-	void ShowHelp();
-	void ShowAbout();
+    cef_main_window_xp();
+    virtual ~cef_main_window_xp();
 
     virtual LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam);
 
 protected:
-	void SaveWindowRect();
-	void RestoreWindowRect(int& left, int& top, int& width, int& height, int& showCmd);
-	void RestoreWindowPlacement(int showCmd);
-
-	BOOL HandleEraseBackground();
-	BOOL HandleCreate();
-	BOOL HandleSetFocus(HWND hLosingFocus);
-	BOOL HandleDestroy();
-	BOOL HandleClose();
-	BOOL HandleSize(BOOL bMinimize);
-	BOOL HandleInitMenuPopup(HMENU hMenuPopup);
-	BOOL HandleCommand(UINT commandId);
-	BOOL HandleExitCommand();
-    BOOL HandlePaint();
-    BOOL HandleGetMinMaxInfo(LPMINMAXINFO mmi);
-
-	virtual void PostNonClientDestory();
-    virtual void GetCefBrowserRect(RECT& rect);
+    BOOL HandleNcPaint(HRGN hUpdateRegion);
 
 private:
-	static ATOM RegisterWndClass();
+    void UpdateNonClientArea();
+    void DoPaintNonClientArea(HDC hdc);
+    void InitDeviceContext(HDC hdc);
+    void DoDrawFrame(HDC hdc);
+    void DoDrawSystemIcon(HDC hdc);
+    void DoDrawTitlebarText(HDC hdc);
 };
