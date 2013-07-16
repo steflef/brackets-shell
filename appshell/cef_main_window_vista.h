@@ -31,5 +31,9 @@ protected:
     BOOL HandlePaint();
     BOOL HandleActivate();
 
+    void DoDrawSystemIcon(HDC hdc);
+    void DoDrawTitlebarText(HDC hdc);
+    void UpdateCaptionBar();
+
     virtual void GetCefBrowserRect(RECT& rect);
 };

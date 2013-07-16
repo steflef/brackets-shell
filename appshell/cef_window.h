@@ -102,6 +102,9 @@ public:
     HDC GetWindowDC()
     { return ::GetWindowDC(mWnd); }
 
+    HDC GetDC()
+    { return ::GetDC(mWnd); }
+
     int ReleaseDC(HDC dc)
     { return ::ReleaseDC(mWnd, dc); }
 
@@ -113,6 +116,9 @@ public:
 
     int GetWindowTextLength() 
     { return ::GetWindowTextLengthW(mWnd); }
+
+    BOOL InvalidateRect(LPRECT lpRect, BOOL bErase = FALSE)
+    { return ::InvalidateRect(mWnd, lpRect, bErase); }
 
 protected:
     HWND mWnd;
