@@ -57,17 +57,24 @@ static LRESULT CALLBACK _HookProc(int code, WPARAM wParam, LPARAM lParam)
     
     LPCREATESTRUCT lpcs = ((LPCBT_CREATEWND)lParam)->lpcs;
 
+    HHOOK nextHook = gHookData.mOldHook;
+
     if (lpcs->lpCreateParams && lpcs->lpCreateParams == (LPVOID)gHookData.mWindow) 
     {
         HWND hWnd = (HWND)wParam;
         gHookData.mWindow->SubclassWindow(hWnd);
+        // Rest the hook data here since we've already hooked this window
+        //  this allows for other windows to be created in the WM_CREATE handlers
+        //  of subclassed windows
+        gHookData.Reset();
     }
 
-    return CallNextHookEx(gHookData.mOldHook, code, wParam, lParam);
+    return CallNextHookEx(nextHook, code, wParam, lParam);
 }
 
 static void _HookWindowCreate(cef_window* window)
 {
+    // can only hook one creation at a time
     if (gHookData.mOldHook || gHookData.mWindow) 
         return;
 
@@ -113,7 +120,6 @@ static HWND _xxCreateWindow(LPCTSTR szClassname, LPCTSTR szWindowTitle, DWORD dw
 
 
     ::_UnHookWindowCreate();
-
     return result;
 }
 

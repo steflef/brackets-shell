@@ -24,42 +24,106 @@
 
 #include <uxtheme.h>
 #include <tmschema.h>
+#include <vsstyle.h>
 // TODO: Load this dynamically
 #pragma comment(lib, "uxtheme")
 
+#include <CommonControls.h>
+
+/* 
+ * Starting with Windows Vista, custom frame drawing has to be handled
+ * by extending the client area into the non-client area.  This is managed
+ * by the Desktop Window Manager so we can't just handle WM_NCPAINT messages
+ * to draw the frame directly.  This is documented in this article
+ * http://msdn.microsoft.com/en-us/library/windows/desktop/bb688195(v=vs.85).aspx
+ */
 
 cef_main_window_vista::cef_main_window_vista()
 {
-
+    ::InitCommonControls();
 }
+
 cef_main_window_vista::~cef_main_window_vista()
 {
 
 }
 
+// TODO: Pass state in
+void cef_main_window_vista::DoDrawWindowCloseButton(HDC hdc)
+{
+    HTHEME hTheme = ::OpenThemeData(mWnd, L"CompositedWindow::Window");
+    if (hTheme)
+    {
+        // TODO: Move this to a ComputeCloseButtonRect
+        RECT rectClient;
+        GetClientRect(&rectClient);
+        
+        RECT closeButtonRect;
+        closeButtonRect.top = 0;
+        closeButtonRect.bottom = closeButtonRect.top + 20;
+        closeButtonRect.right = ::RectWidth(rectClient) - 10;
+        closeButtonRect.left = closeButtonRect.right - 20;
+
+
+        
+        DTBGOPTS options = {0};
+        options.dwSize = sizeof(options);
+        options.dwFlags = DTBG_OMITBORDER;
+
+        ::DrawThemeBackgroundEx(hTheme, hdc, WP_CLOSEBUTTON, CBS_NORMAL, &closeButtonRect, &options); 
+        //::DrawThemeBackground(hTheme, hdc, WP_MAXBUTTON, MAXBS_NORMAL, &closeButtonRect, NULL);
+/*        HBITMAP hCloseButtonBitmap = NULL;
+        ::GetThemeBitmap(hTheme, WP_CLOSEBUTTON, CBS_NORMAL, TMT_DIBDATA, GBF_VALIDBITS, &hCloseButtonBitmap);
+   //     RECT closeButtonBitmapRect;
+  //      ::GetThemeBackgroundContentRect(hTheme, hdc, WP_CLOSEBUTTON, CBS_NORMAL, &closeButtonRect, &closeButtonBitmapRect);
+        HIMAGELIST himl = ::ImageList_Create(::RectWidth(closeButtonBitmapRect),
+                                             ::RectHeight(closeButtonBitmapRect),
+                                             ILC_COLOR|ILC_COLORDDB,
+                                             1,
+                                             0);
+
+
+        ::ImageList_Add(himl, hCloseButtonBitmap, NULL);
+        ::DrawThemeIcon(hTheme, hdc, WP_CLOSEBUTTON, CBS_NORMAL, &closeButtonRect, himl, 0);
+
+        HDC bmDC = ::CreateCompatibleDC(hdc);
+        HBITMAP bmOld = (HBITMAP)::SelectObject(bmDC, hCloseButtonBitmap);
+        BITMAP bm;
+        ::GetObject(hCloseButtonBitmap, sizeof(bm), &bm);
+        BitBlt(hdc, closeButtonRect.left, closeButtonRect.top, bm.bmWidth, bm.bmHeight, bmDC, 0, 0, SRCCOPY);
+        ::SelectObject(bmDC, bmOld);
+        ::DeleteDC(bmDC); */
+        //::CloseThemeData(hTheme);
+    }        
+    
+}
+
+
 void cef_main_window_vista::DoDrawTitlebarText(HDC hdc)
 {
-    HTHEME hTheme = OpenThemeData(NULL, L"CompositedWindow::Window");
+    HTHEME hTheme = ::OpenThemeData(NULL, L"CompositedWindow::Window");
     if (hTheme)
     {
         LOGFONT lgFont;    
         HFONT hPreviousFont = NULL;
         if (SUCCEEDED(::GetThemeSysFont(hTheme, TMT_CAPTIONFONT, &lgFont)))
         {
+            // TODO: Cache this font
             HFONT hFont = ::CreateFontIndirect(&lgFont);
             hPreviousFont = (HFONT) SelectObject(hdc, hFont);
 
             int oldBkMode = ::SetBkMode(hdc, TRANSPARENT);
             COLORREF oldRGB = ::SetTextColor(hdc, RGB(197,197,197));
 
-            RECT wr;
-            GetClientRect(&wr);
+            // TODO: Move this to a ComputeTextRect
+            RECT rectClient;
+            GetClientRect(&rectClient);
 
             RECT textRect;
             textRect.top = 0;
             textRect.bottom = textRect.top + GetSystemMetrics (SM_CYCAPTION) +  10;
-            textRect.left = (10 * 2) + GetSystemMetrics(SM_CXSMICON);
-            textRect.right = ::RectWidth(wr) - 10;
+            textRect.left  = GetSystemMetrics(SM_CXSMICON) + 20; 
+            textRect.right  = ::RectWidth(rectClient) - 10;
 
             int textLength = GetWindowTextLength() + 1;
             LPWSTR szCaption = new wchar_t [textLength + 1];
@@ -73,11 +137,13 @@ void cef_main_window_vista::DoDrawTitlebarText(HDC hdc)
             ::SetBkMode(hdc, oldBkMode);
             ::SelectObject(hdc, hPreviousFont);
         }        
-        CloseThemeData(hTheme);
+        ::CloseThemeData(hTheme);
     }
 }
 
-void cef_main_window_vista::DoDrawSystemIcon(HDC hdc)
+
+// TODO: move to base class and add ComputeSystemMenuIconRect
+void cef_main_window_vista::DoDrawSystemMenuIcon(HDC hdc)
 {
     // TODO: cache this icon
     HICON hSystemIcon = reinterpret_cast<HICON>(GetClassLongPtr(GCLP_HICONSM));
@@ -96,6 +162,7 @@ void cef_main_window_vista::DoDrawSystemIcon(HDC hdc)
 
 BOOL cef_main_window_vista::HandlePaint() 
 {
+    // TODO: Buffer this paint
     RECT rcClient;
 
     PAINTSTRUCT ps;
@@ -107,14 +174,15 @@ BOOL cef_main_window_vista::HandlePaint()
     FillRect(hdc, &rcClient, br);
     DeleteObject(br);
 
-    DoDrawSystemIcon(hdc);
+    DoDrawSystemMenuIcon(hdc);
     DoDrawTitlebarText(hdc);
+    DoDrawWindowCloseButton(hdc);
 
     EndPaint(&ps);
     return TRUE;
 }
 
-
+// TODO: Rename this to ComputeCefBrowserRect
 void cef_main_window_vista::GetCefBrowserRect(RECT& rect)
 {
     GetClientRect(&rect);
@@ -128,23 +196,23 @@ void cef_main_window_vista::GetCefBrowserRect(RECT& rect)
 
 BOOL cef_main_window_vista::HandleCreate() 
 {
-    RECT rcClient;
-    GetWindowRect(&rcClient);
+    RECT rectClient;
+    GetWindowRect(&rectClient);
 
     // Inform the application of the frame change.
     SetWindowPos(NULL, 
-                 rcClient.left, rcClient.top,
-                 ::RectWidth(rcClient), 
-                 ::RectHeight(rcClient),
+                 rectClient.left, 
+                 rectClient.top,
+                 ::RectWidth(rectClient), 
+                 ::RectHeight(rectClient),
                  SWP_FRAMECHANGED);    
 
-    return cef_main_window::HandleCreate();
+    return TRUE;//cef_main_window::HandleCreate();
 }
 
 BOOL cef_main_window_vista::HandleActivate()
 {
-    MARGINS margins;
-    ::ZeroMemory(&margins, sizeof(margins));
+    MARGINS margins = {0}; 
 
     if (SUCCEEDED(DwmExtendFrameIntoClientArea(mWnd, &margins)))
     {
@@ -156,14 +224,15 @@ BOOL cef_main_window_vista::HandleActivate()
 
 void cef_main_window_vista::UpdateCaptionBar()
 {
-    RECT wr;
-    GetClientRect(&wr);
+    // TODO: ComputeTextRect
+    RECT rectClient;
+    GetClientRect(&rectClient);
 
     RECT textRect;
     textRect.top = 0;
     textRect.bottom = textRect.top + GetSystemMetrics (SM_CYCAPTION) +  10;
     textRect.left = (10 * 2) + GetSystemMetrics(SM_CXSMICON);
-    textRect.right = ::RectWidth(wr) - 10;
+    textRect.right = ::RectWidth(rectClient) - 10;
 
     InvalidateRect(&textRect);
 }

@@ -50,7 +50,7 @@ void cef_main_window_xp::DoDrawFrame(HDC hdc)
     DeleteObject(br);
 }
 
-void cef_main_window_xp::DoDrawSystemIcon(HDC hdc)
+void cef_main_window_xp::DoDrawSystemMenuIcon(HDC hdc)
 {
     // TODO: cache this icon
     HICON hSystemIcon = reinterpret_cast<HICON>(GetClassLongPtr(GCLP_HICONSM));
@@ -123,7 +123,7 @@ void cef_main_window_xp::DoPaintNonClientArea(HDC hdc)
     // TODO: buffer this drawing to reduce flicker
     InitDeviceContext(hdc);
     DoDrawFrame(hdc);
-    DoDrawSystemIcon(hdc);
+    DoDrawSystemMenuIcon(hdc);
     DoDrawTitlebarText(hdc);
 }
 

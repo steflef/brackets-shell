@@ -34,6 +34,6 @@ private:
     void DoPaintNonClientArea(HDC hdc);
     void InitDeviceContext(HDC hdc);
     void DoDrawFrame(HDC hdc);
-    void DoDrawSystemIcon(HDC hdc);
+    void DoDrawSystemMenuIcon(HDC hdc);
     void DoDrawTitlebarText(HDC hdc);
 };

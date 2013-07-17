@@ -31,7 +31,8 @@ protected:
     BOOL HandlePaint();
     BOOL HandleActivate();
 
-    void DoDrawSystemIcon(HDC hdc);
+    void DoDrawWindowCloseButton(HDC hdc);
+    void DoDrawSystemMenuIcon(HDC hdc);
     void DoDrawTitlebarText(HDC hdc);
     void UpdateCaptionBar();
 
