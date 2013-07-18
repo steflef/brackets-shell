@@ -210,7 +210,7 @@ BOOL cef_main_window_vista::HandleCreate()
                  ::RectHeight(rectClient),
                  SWP_FRAMECHANGED);    
 
-    return TRUE;//cef_main_window::HandleCreate();
+    return cef_main_window::HandleCreate();
 }
 
 BOOL cef_main_window_vista::HandleActivate()
@@ -240,6 +240,31 @@ void cef_main_window_vista::UpdateCaptionBar()
     InvalidateRect(&textRect);
 }
 
+int cef_main_window_vista::HandleNonClientHitTest(LPPOINT ptHit)
+{
+    RECT rectClient;
+    GetClientRect(&rectClient);
+
+    if (::PtInRect(&rectClient, *ptHit)) {
+        return HTCLIENT;
+    }
+
+    RECT textRect;
+    textRect.top = 0;
+    textRect.bottom = textRect.top + GetSystemMetrics (SM_CYCAPTION) +  10;
+    textRect.left  = GetSystemMetrics(SM_CXSMICON) + 20; 
+    textRect.right  = ::RectWidth(rectClient) - 10;
+
+
+    if (::PtInRect(&textRect, *ptHit)) {
+        return HTCAPTION;
+    }
+    else {
+        return HTBORDER;
+    }
+}
+
+
 LRESULT cef_main_window_vista::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message) 
@@ -263,6 +288,12 @@ LRESULT cef_main_window_vista::WindowProc(UINT message, WPARAM wParam, LPARAM lP
     case WM_SETTEXT:
         UpdateCaptionBar();
         break;
+    case WM_NCHITTEST:
+        {
+            POINT pt;
+            POINTSTOPOINT(pt, lParam);
+            return HandleNonClientHitTest(&pt);
+        }
     }
 
     LRESULT lr = cef_main_window::WindowProc(message, wParam, lParam);

@@ -31,6 +31,7 @@ public:
     virtual LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam);
 
 protected:
+    BOOL HandleCreate();
     BOOL HandleNcPaint(HRGN hUpdateRegion);
 
 private:

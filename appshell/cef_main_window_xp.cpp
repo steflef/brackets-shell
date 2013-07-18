@@ -18,6 +18,8 @@
  **************************************************************************/
 #include "cef_main_window_xp.h"
 
+#include <Uxtheme.h>
+
 // undefined windows constants for drawing
 #ifndef DCX_USESTYLE
 #define DCX_USESTYLE 0x00010000
@@ -31,6 +33,13 @@ cef_main_window_xp::~cef_main_window_xp()
 {
 
 }
+
+BOOL cef_main_window_xp::HandleCreate()
+{
+    ::SetWindowTheme(mWnd, L"", L"");
+    return cef_main_window::HandleCreate();
+}
+
 
 void cef_main_window_xp::DoDrawFrame(HDC hdc)
 {
@@ -148,6 +157,10 @@ LRESULT cef_main_window_xp::WindowProc(UINT message, WPARAM wParam, LPARAM lPara
 {
 	switch (message) 
 	{
+    case WM_CREATE:
+        if (HandleCreate())
+            return 0L;
+        break;
     case WM_NCPAINT:
         if (HandleNcPaint((HRGN)wParam)) 
             return 0L;

@@ -34,6 +34,7 @@ protected:
     BOOL HandleCreate();
     BOOL HandlePaint();
     BOOL HandleActivate();
+    int HandleNonClientHitTest(LPPOINT ptHit);
 
     void DoDrawWindowCloseButton(HDC hdc);
     void DoDrawSystemMenuIcon(HDC hdc);

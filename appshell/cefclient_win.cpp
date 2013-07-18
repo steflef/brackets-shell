@@ -26,6 +26,7 @@
 #include <ShlObj.h>
  
 #include "cef_main_window_vista.h"
+#include "cef_main_window_xp.h"
 
 // Global Variables:
 HINSTANCE           gInstance;
@@ -270,7 +271,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) 
 {
 	gInstance = hInstance;  // Store instance handle in our global variable
-	gMainWnd = new cef_main_window_vista();
+	gMainWnd = new cef_main_window_xp();
 	return gMainWnd->Create();
 }
 
