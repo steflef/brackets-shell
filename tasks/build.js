@@ -95,6 +95,7 @@ module.exports = function (grunt) {
                 promise = spawn([
                     "git checkout " + this.data.branch,
                     "git pull origin " + this.data.branch,
+                    "git submodule sync",
                     "git submodule update --init --recursive"
                 ], { cwd: repo });
         
@@ -122,7 +123,8 @@ module.exports = function (grunt) {
                 grunt.config("build.build-branch", branch);
                 
                 done();
-            }, function () {
+            }, function (err) {
+                grunt.log.error(err);
                 done(false);
             });
     });
@@ -140,7 +142,8 @@ module.exports = function (grunt) {
                 grunt.config("build.build-number", buildNum);
                 
                 done();
-            }, function () {
+            }, function (err) {
+                grunt.log.error(err);
                 done(false);
             });
     });
@@ -159,6 +162,7 @@ module.exports = function (grunt) {
                 
                 done();
             }, function (err) {
+                grunt.log.error(err);
                 done(false);
             });
     });
@@ -193,7 +197,7 @@ module.exports = function (grunt) {
     
     // task: package
     grunt.registerTask("package", "Package www files", function () {
-        grunt.task.run(["clean:www","copy:www", "copy:samples", "write-config"]);
+        grunt.task.run(["clean:www", "copy:www", "copy:samples", "write-config"]);
     });
     
     // task: write-config
