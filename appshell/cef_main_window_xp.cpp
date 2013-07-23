@@ -54,7 +54,8 @@ void cef_main_window_xp::DoDrawFrame(HDC hdc)
     rectFrame.right = ::RectWidth(rectWindow);
 
     // TODO: cache this brush and use const color
-    HBRUSH br = ::CreateSolidBrush(RGB(59, 62, 64));
+                            
+    HBRUSH br = ::CreateSolidBrush(RGB(60, 63, 65));
     FillRect(hdc, &rectFrame, br);
     DeleteObject(br);
 }
