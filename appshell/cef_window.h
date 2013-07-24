@@ -124,12 +124,18 @@ public:
     BOOL InvalidateRect(LPRECT lpRect, BOOL bErase = FALSE)
     { return ::InvalidateRect(mWnd, lpRect, bErase); }
 
+    BOOL IsZoomed() 
+    { return ::IsZoomed(mWnd); }
+
+    BOOL IsIconic() 
+    { return ::IsIconic(mWnd); }
+
 protected:
     HWND mWnd;
     WNDPROC mSuperWndProc;
 
-    BOOL HandleNonClientDestroy();
-    virtual void PostNonClientDestory();
+    BOOL HandleNcDestroy();
+    virtual void PostNcDestory();
 
     void ComputeLogicalClientRect(RECT& rectClient);
     void ScreenToNonClient(RECT& rect);

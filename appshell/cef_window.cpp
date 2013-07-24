@@ -152,7 +152,7 @@ LRESULT cef_window::DefaultWindowProc(UINT message, WPARAM wParam, LPARAM lParam
 
 }
 
-BOOL cef_window::HandleNonClientDestroy()
+BOOL cef_window::HandleNcDestroy()
 {
     WNDPROC superWndProc = WNDPROC(GetWindowLongPtr(GWLP_WNDPROC));
 
@@ -167,7 +167,7 @@ BOOL cef_window::HandleNonClientDestroy()
     return TRUE;
 }
 
-void cef_window::PostNonClientDestory()
+void cef_window::PostNcDestory()
 {
     mWnd = NULL;
 }
@@ -177,7 +177,7 @@ LRESULT cef_window::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
     switch(message)
     {
 	    case WM_NCDESTROY:
-		    if (HandleNonClientDestroy())
+		    if (HandleNcDestroy())
 			    return 0L;
 		    break;
     }
@@ -186,7 +186,7 @@ LRESULT cef_window::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 	
     if (message == WM_NCDESTROY) 
     {
-	    PostNonClientDestory();
+	    PostNcDestory();
     }
 
     return lr;

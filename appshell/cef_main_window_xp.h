@@ -22,6 +22,11 @@
  */
 #include "cef_main_window.h"
 
+namespace Gdiplus
+{
+    class Image;
+};
+
 class cef_main_window_xp : public cef_main_window
 {
 public:
@@ -31,14 +36,32 @@ public:
     virtual LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam);
 
 protected:
+    BOOL HandleNcCreate();
     BOOL HandleCreate();
+    BOOL HandleNcDestroy();
     BOOL HandleNcPaint(HRGN hUpdateRegion);
 
 private:
     void UpdateNonClientArea();
-    void DoPaintNonClientArea(HDC hdc);
     void InitDeviceContext(HDC hdc);
+    void DoPaintNonClientArea(HDC hdc);
     void DoDrawFrame(HDC hdc);
     void DoDrawSystemMenuIcon(HDC hdc);
     void DoDrawTitlebarText(HDC hdc);
+    void DoDrawSystemIcons(HDC hdc);
+
+    void ComputeWindowIconRect(RECT& rect);
+    void ComputeWindowCaptionRect(RECT& rect);
+    void ComputeMinimizeButtonRect(RECT& rect);
+    void ComputeMaximizeButtonRect(RECT& rect);
+    void ComputeCloseButtonRect(RECT& rect);
+
+    void LoadSysButtonImages();
+
+    Gdiplus::Image* mSysCloseButton;
+    Gdiplus::Image* mSysRestoreButton;
+    Gdiplus::Image* mSysMinimizeButton;
+    Gdiplus::Image* mSysMaximizeButton;
+
+    NONCLIENTMETRICS mNcMetrics;
 };

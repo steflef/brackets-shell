@@ -54,7 +54,7 @@ protected:
     BOOL HandlePaint();
     BOOL HandleGetMinMaxInfo(LPMINMAXINFO mmi);
 
-	virtual void PostNonClientDestory();
+	virtual void PostNcDestory();
     virtual void GetCefBrowserRect(RECT& rect);
 
 private:

@@ -17,29 +17,175 @@
  * from Adobe Systems Incorporated.
  **************************************************************************/
 #include "cef_main_window_xp.h"
-
+#include <minmax.h>
+#include <objidl.h>
+#include <GdiPlus.h>
 #include <Uxtheme.h>
+
+#pragma comment(lib, "gdiplus")
 
 // undefined windows constants for drawing
 #ifndef DCX_USESTYLE
 #define DCX_USESTYLE 0x00010000
 #endif
 
-cef_main_window_xp::cef_main_window_xp()
-{
+static ULONG_PTR gdiplusToken;
 
+static void RECT2Rect(Gdiplus::Rect& dest, const RECT& src) {
+    dest.X = src.left;
+    dest.Y = src.top;
+    dest.Width = ::RectWidth(src);
+    dest.Height = ::RectHeight(src);
 }
+
+
+cef_main_window_xp::cef_main_window_xp() :
+    mSysCloseButton(0),
+    mSysRestoreButton(0),
+    mSysMinimizeButton(0),
+    mSysMaximizeButton(0),
+    mWindowIcon(0)
+{
+    ::ZeroMemory(&mNcMetrics, sizeof(mNcMetrics));
+}
+
 cef_main_window_xp::~cef_main_window_xp()
 {
 
 }
 
+void cef_main_window_xp::LoadSysButtonImages()
+{
+    mNcMetrics.cbSize = sizeof (mNcMetrics);
+    ::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &mNcMetrics, 0);
+
+
+    Gdiplus::GdiplusStartupInput gdiplusStartupInput;
+    Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
+
+    // TODO: Move these to resources
+    if (mSysCloseButton == NULL) {
+        mSysCloseButton = Gdiplus::Image::FromFile(L"C:\\Users\\jsbooher\\Documents\\GitHub\\brackets-shell\\appshell\\res\\close.png", (BOOL)FALSE);
+    }
+
+    if (mSysMaximizeButton == NULL) {
+        mSysMaximizeButton = Gdiplus::Image::FromFile(L"C:\\Users\\jsbooher\\Documents\\GitHub\\brackets-shell\\appshell\\res\\max.png", (BOOL)FALSE);
+    }
+
+    if (mSysMinimizeButton == NULL) {
+        mSysMinimizeButton = Gdiplus::Image::FromFile(L"C:\\Users\\jsbooher\\Documents\\GitHub\\brackets-shell\\appshell\\res\\min.png", (BOOL)FALSE);
+    }
+
+    ::SetWindowTheme(mWnd, L"", L"");
+}
+
+BOOL cef_main_window_xp::HandleNcCreate()
+{
+    LoadSysButtonImages();
+    return FALSE;
+}
+
+// TODO This can go if we don't need it
 BOOL cef_main_window_xp::HandleCreate()
 {
-    ::SetWindowTheme(mWnd, L"", L"");
     return cef_main_window::HandleCreate();
 }
 
+
+BOOL cef_main_window_xp::HandleNcDestroy()
+{
+    BOOL result = cef_main_window::HandleNcDestroy();
+
+    delete mSysCloseButton;
+    delete mSysRestoreButton;
+    delete mSysMinimizeButton;
+    delete mSysMaximizeButton;
+
+    Gdiplus::GdiplusShutdown(gdiplusToken);
+
+    return result;
+}
+
+void cef_main_window_xp::ComputeWindowIconRect(RECT& rect)
+{
+    int top = mNcMetrics.iBorderWidth;
+    int left = mNcMetrics.iBorderWidth;
+
+    if (IsZoomed()) {
+        top = 1;
+        left = 1;
+    }
+
+
+    ::SetRectEmpty(&rect);
+    rect.top =  top;
+    rect.left = left;
+    rect.bottom = rect.top + ::GetSystemMetrics(SM_CYSMICON);
+    rect.right = rect.left + ::GetSystemMetrics(SM_CXSMICON);
+}
+
+void cef_main_window_xp::ComputeWindowCaptionRect(RECT& rect)
+{
+    RECT wr;
+    GetWindowRect(&wr);
+
+    int top = mNcMetrics.iBorderWidth;
+    int left = mNcMetrics.iBorderWidth;
+
+    if (IsZoomed()) {
+        top = 1;
+        left = 1;
+    }
+
+    rect.top = top;
+    rect.bottom = rect.top + ::GetSystemMetrics (SM_CYCAPTION);
+
+    RECT ir;
+    ComputeWindowIconRect(ir);
+
+    RECT mr;
+    ComputeMinimizeButtonRect(mr);
+
+    rect.left = ir.right + 1;
+    rect.right = mr.left - 1;
+}
+
+void cef_main_window_xp::ComputeMinimizeButtonRect(RECT& rect)
+{
+    ComputeMaximizeButtonRect(rect);
+
+    rect.left -= (mSysMinimizeButton->GetWidth() + 1);
+    rect.right = rect.left + mSysMinimizeButton->GetWidth();
+    rect.bottom = rect.top + mSysMinimizeButton->GetHeight();
+}
+
+void cef_main_window_xp::ComputeMaximizeButtonRect(RECT& rect)
+{
+    ComputeCloseButtonRect(rect);
+
+    rect.left -= (mSysMaximizeButton->GetWidth() + 1);
+    rect.right = rect.left + mSysMaximizeButton->GetWidth();
+    rect.bottom = rect.top + mSysMaximizeButton->GetHeight();
+}
+
+void cef_main_window_xp::ComputeCloseButtonRect(RECT& rect)
+{
+    int top = 1;
+    int right =  mNcMetrics.iBorderWidth;
+
+    if (IsZoomed()) {
+        top = 0;
+        right = 1;
+    }
+
+    RECT wr;
+    GetWindowRect(&wr);
+
+    rect.left = ::RectWidth(wr) - right - mSysCloseButton->GetWidth();
+    rect.top = top;
+    rect.right = rect.left + mSysCloseButton->GetWidth();
+    rect.bottom = rect.top + mSysCloseButton->GetHeight();
+}
 
 void cef_main_window_xp::DoDrawFrame(HDC hdc)
 {
@@ -62,44 +208,29 @@ void cef_main_window_xp::DoDrawFrame(HDC hdc)
 
 void cef_main_window_xp::DoDrawSystemMenuIcon(HDC hdc)
 {
-    // TODO: cache this icon
-    HICON hSystemIcon = reinterpret_cast<HICON>(GetClassLongPtr(GCLP_HICONSM));
-    if (hSystemIcon == 0)
-        hSystemIcon = reinterpret_cast<HICON>(GetClassLongPtr(GCLP_HICON));
+    if (mWindowIcon == 0) {
+        mWindowIcon = reinterpret_cast<HICON>(GetClassLongPtr(GCLP_HICONSM));
+        if (mWindowIcon == 0)
+            mWindowIcon = reinterpret_cast<HICON>(GetClassLongPtr(GCLP_HICON));
+    }
 
-    // TODO: cache this data
-    NONCLIENTMETRICS ncm;
-    ::ZeroMemory(&ncm, sizeof(ncm));
-    ncm.cbSize = sizeof (ncm);
-    ::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &ncm, 0);
+    RECT rectIcon;
+    ComputeWindowIconRect(rectIcon);
 
-    ::DrawIconEx(hdc, ncm.iBorderWidth, ncm.iBorderWidth, hSystemIcon, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0, NULL, DI_NORMAL);
-
+    ::DrawIconEx(hdc, rectIcon.top, rectIcon.left, mWindowIcon, ::RectWidth(rectIcon), ::RectHeight(rectIcon), 0, NULL, DI_NORMAL);
 }
 
 void cef_main_window_xp::DoDrawTitlebarText(HDC hdc)
 {
-    // TODO: cache this data
-    NONCLIENTMETRICS ncm;
-    ::ZeroMemory(&ncm, sizeof(ncm));
-    ncm.cbSize = sizeof (ncm);
-    ::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &ncm, 0);
-
     // TODO: cache this font
-    HFONT hCaptionFont= ::CreateFontIndirect(&ncm.lfCaptionFont);
+    HFONT hCaptionFont= ::CreateFontIndirect(&mNcMetrics.lfCaptionFont);
     HGDIOBJ hPreviousFont = ::SelectObject(hdc, hCaptionFont);        
 
     int oldBkMode = ::SetBkMode(hdc, TRANSPARENT);
     COLORREF oldRGB = ::SetTextColor(hdc, RGB(197,197,197));
 
-    RECT wr;
-    GetWindowRect(&wr);
-
     RECT textRect;
-    textRect.top = 0;
-    textRect.bottom = textRect.top + GetSystemMetrics (SM_CYCAPTION) +  ncm.iBorderWidth;
-    textRect.left = (ncm.iBorderWidth * 2) + GetSystemMetrics(SM_CXSMICON);
-    textRect.right = ::RectWidth(wr) - ncm.iBorderWidth;
+    ComputeWindowCaptionRect(textRect);
 
     int textLength = GetWindowTextLength() + 1;
     LPWSTR szCaption = new wchar_t [textLength + 1];
@@ -115,6 +246,28 @@ void cef_main_window_xp::DoDrawTitlebarText(HDC hdc)
 
     // TODO: Once we start caching the font we will need to move this to DestroyWindow()
     ::DeleteObject(hCaptionFont);
+}
+
+void cef_main_window_xp::DoDrawSystemIcons(HDC hdc)
+{
+    RECT rcButton;
+    Gdiplus::Rect rect;
+    Gdiplus::Graphics grpx(hdc);
+   
+    ComputeCloseButtonRect(rcButton);
+    ::RECT2Rect(rect, rcButton);
+
+    grpx.DrawImage(mSysCloseButton, rect);
+
+    ComputeMaximizeButtonRect(rcButton);
+    ::RECT2Rect(rect, rcButton);
+
+    grpx.DrawImage(mSysMaximizeButton, rect);
+
+    ComputeMinimizeButtonRect(rcButton);
+    ::RECT2Rect(rect, rcButton);
+
+    grpx.DrawImage(mSysMinimizeButton, rect);
 }
 
 
@@ -135,6 +288,7 @@ void cef_main_window_xp::DoPaintNonClientArea(HDC hdc)
     DoDrawFrame(hdc);
     DoDrawSystemMenuIcon(hdc);
     DoDrawTitlebarText(hdc);
+    DoDrawSystemIcons(hdc);
 }
 
 void cef_main_window_xp::UpdateNonClientArea()
@@ -158,12 +312,20 @@ LRESULT cef_main_window_xp::WindowProc(UINT message, WPARAM wParam, LPARAM lPara
 {
 	switch (message) 
 	{
+    case WM_NCCREATE:
+        if (HandleNcCreate())
+            return 0L;
+        break;
     case WM_CREATE:
         if (HandleCreate())
             return 0L;
         break;
     case WM_NCPAINT:
         if (HandleNcPaint((HRGN)wParam)) 
+            return 0L;
+        break;
+    case WM_NCDESTROY:
+        if (HandleNcDestroy())
             return 0L;
         break;
     }

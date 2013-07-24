@@ -126,7 +126,7 @@ BOOL cef_main_window::Create()
     return TRUE;
 }
 
-void cef_main_window::PostNonClientDestory()
+void cef_main_window::PostNcDestory()
 {
 	delete this;
 }
