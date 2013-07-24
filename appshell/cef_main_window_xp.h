@@ -64,4 +64,5 @@ private:
     Gdiplus::Image* mSysMaximizeButton;
 
     NONCLIENTMETRICS mNcMetrics;
+    HICON            mWindowIcon;
 };

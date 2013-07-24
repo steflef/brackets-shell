@@ -103,13 +103,12 @@ BOOL cef_main_window::Create()
 
 	RestoreWindowRect(left, top, width, height, showCmd);
 
-	DWORD styles = WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_EX_COMPOSITED;
-	
+	DWORD styles =  WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_EX_COMPOSITED | WS_CAPTION | WS_SYSMENU  | WS_THICKFRAME  |WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
 	if (showCmd == SW_MAXIMIZE)
 	  styles |= WS_MAXIMIZE;
 
 	static TCHAR szTitle[100];
-	LoadString(::gInstance, IDS_APP_TITLE, szTitle, _countof(szTitle));	
+	LoadString(::gInstance, IDS_APP_TITLE, szTitle, _countof(szTitle) - 1);	
 
 	if (!cef_window::Create(::gWindowClassname, szTitle,
 								styles, left, top, width, height))
@@ -117,11 +116,8 @@ BOOL cef_main_window::Create()
 		return FALSE;
 	}
 
-    DragAcceptFiles(TRUE);
 	RestoreWindowPlacement(showCmd);
 	UpdateWindow();
-
-
 
     return TRUE;
 }
@@ -202,6 +198,10 @@ BOOL cef_main_window::HandleGetMinMaxInfo(LPMINMAXINFO mmi)
 {
 	mmi->ptMinTrackSize.x = ::gMinWindowWidth;
 	mmi->ptMinTrackSize.y = ::gMinWindowHeight;
+
+
+
+
     return TRUE;
 }
 

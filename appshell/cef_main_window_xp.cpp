@@ -76,6 +76,10 @@ void cef_main_window_xp::LoadSysButtonImages()
         mSysMinimizeButton = Gdiplus::Image::FromFile(L"C:\\Users\\jsbooher\\Documents\\GitHub\\brackets-shell\\appshell\\res\\min.png", (BOOL)FALSE);
     }
 
+    if (mSysRestoreButton == NULL) {
+        mSysRestoreButton = Gdiplus::Image::FromFile(L"C:\\Users\\jsbooher\\Documents\\GitHub\\brackets-shell\\appshell\\res\\restore.png", (BOOL)FALSE);
+    }
+
     ::SetWindowTheme(mWnd, L"", L"");
 }
 
@@ -111,11 +115,11 @@ void cef_main_window_xp::ComputeWindowIconRect(RECT& rect)
     int top = mNcMetrics.iBorderWidth;
     int left = mNcMetrics.iBorderWidth;
 
-    if (IsZoomed()) {
-        top = 1;
-        left = 1;
-    }
 
+    if (IsZoomed()) {
+        top = 12;
+        left = 12;
+    }
 
     ::SetRectEmpty(&rect);
     rect.top =  top;
@@ -133,8 +137,8 @@ void cef_main_window_xp::ComputeWindowCaptionRect(RECT& rect)
     int left = mNcMetrics.iBorderWidth;
 
     if (IsZoomed()) {
-        top = 1;
-        left = 1;
+        top = 8;
+        left = 8;
     }
 
     rect.top = top;
@@ -173,10 +177,12 @@ void cef_main_window_xp::ComputeCloseButtonRect(RECT& rect)
     int top = 1;
     int right =  mNcMetrics.iBorderWidth;
 
+
     if (IsZoomed()) {
-        top = 0;
-        right = 1;
+        top =  8;
+        right = 8;
     }
+
 
     RECT wr;
     GetWindowRect(&wr);
@@ -262,7 +268,11 @@ void cef_main_window_xp::DoDrawSystemIcons(HDC hdc)
     ComputeMaximizeButtonRect(rcButton);
     ::RECT2Rect(rect, rcButton);
 
-    grpx.DrawImage(mSysMaximizeButton, rect);
+    if (IsZoomed()) {
+        grpx.DrawImage(mSysRestoreButton, rect);
+    } else {
+        grpx.DrawImage(mSysMaximizeButton, rect);
+    }
 
     ComputeMinimizeButtonRect(rcButton);
     ::RECT2Rect(rect, rcButton);
