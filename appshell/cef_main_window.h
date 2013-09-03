@@ -53,6 +53,8 @@ protected:
 	BOOL HandleExitCommand();
     BOOL HandlePaint();
     BOOL HandleGetMinMaxInfo(LPMINMAXINFO mmi);
+    BOOL HandleCopyData(HWND, PCOPYDATASTRUCT lpCopyData);
+
 
 	virtual void PostNcDestory();
     virtual void GetCefBrowserRect(RECT& rect);

@@ -31,56 +31,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <X11/Xlib.h>
 
 GtkWidget* _menuWidget;
 
 int ConvertLinuxErrorCode(int errorCode, bool isReading = true);
+int ConvertGnomeErrorCode(GError* gerror, bool isReading = true);
 
 extern bool isReallyClosing;
 
-static const char* GetPathToLiveBrowser() 
-{
-    //#TODO Use execlp and be done with it! No need to reinvent the wheel; so badly that too!
-    char *envPath = getenv( "PATH" ), *path, *dir, *currentPath;
-
-    //# copy PATH and not modify the original
-    path=(char *)malloc(strlen(envPath)+1);
-    strcpy(path, envPath);
-
-    // Prepend a forward-slash. For convenience
-    const char* executable="/google-chrome";
-    struct stat buf;
-    int len;
- 
-    for ( dir = strtok( path, ":" ); dir; dir = strtok( NULL, ":" ) )
-    {
-        len=strlen(dir)+strlen(executable);
-        // if((strrchr(dir,'/')-dir)==strlen(dir))
-        // {
-        //     currentPath = (char*)malloc(len);
-        //     strcpy(currentPath,dir);
-        // } else
-        // {
-        // stat handles consecutive forward slashes automatically. No need for above
-            currentPath = (char *)malloc(len+1);
-            strncpy(currentPath,dir,len);
-        //}
-        strcat(currentPath,executable);
-    
-        if(stat(currentPath,&buf)==0 && S_ISREG(buf.st_mode))
-            return currentPath;
-    }
-
-    return "";
-}
 
 int32 OpenLiveBrowser(ExtensionString argURL, bool enableRemoteDebugging)
 {    
-    //# COnsider using execlp and avoid all this path mess!
-    const char  *appPath = GetPathToLiveBrowser(),
-                *arg1 = "--allow-file-access-from-files";
-    std::string arg2(" ");
+    // Supported browsers (order matters):
+    //   - google-chorme 
+    //   - chromium-browser - chromium executable name (in ubuntu)
+    //   - chromium - other chromium executable name (in arch linux)
+    std::string browsers[3] = {"google-chrome", "chromium-browser", "chromium"},
+                arg1("--allow-file-access-from-files"),
+                arg2(" ");
 
     if(enableRemoteDebugging)
         arg2.assign("--remote-debugging-port=9222");
@@ -94,10 +64,16 @@ int32 OpenLiveBrowser(ExtensionString argURL, bool enableRemoteDebugging)
         case -1:    //# Something went wrong
                 return ConvertLinuxErrorCode(errno);
         case 0:     //# I'm the child. When I successfully exec, parent is resumed. Or when I _exec()
-                execl(appPath, arg1, argURL.c_str(), arg2.c_str(),(char *)0);
-
+                // check for supported browsers (in PATH directories)
+                for (size_t i = 0; i < sizeof(browsers) / sizeof(browsers[0]); i++) {
+                    if (execlp(browsers[i].c_str(), browsers[i].c_str(), arg1.c_str(), argURL.c_str(), arg2.c_str(), NULL) != -1) {
+                        // browser is found in os; stop iterating
+                        break;
+                    }
+                }
                 error=errno;
                 _exit(0);
+
         default:
                 if(error!=0)
                 {
@@ -187,7 +163,33 @@ int32 ShowSaveDialog(ExtensionString title,
                      ExtensionString proposedNewFilename,
                      ExtensionString& newFilePath)
 {
-    // TODO
+    GtkWidget *openSaveDialog;
+    
+    openSaveDialog = gtk_file_chooser_dialog_new(title.c_str(),
+        NULL,
+        GTK_FILE_CHOOSER_ACTION_SAVE,
+        GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+        GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+        NULL);
+    
+    gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (openSaveDialog), TRUE);	
+    if (!initialDirectory.empty())
+    {
+        gtk_file_chooser_set_current_name (GTK_FILE_CHOOSER (openSaveDialog), proposedNewFilename.c_str());
+        
+        ExtensionString folderURI = std::string("file:///") + initialDirectory;
+        gtk_file_chooser_set_current_folder_uri (GTK_FILE_CHOOSER (openSaveDialog), folderURI.c_str());
+    }
+    
+    if (gtk_dialog_run (GTK_DIALOG (openSaveDialog)) == GTK_RESPONSE_ACCEPT)
+    {
+        char* filePath;
+        filePath = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (openSaveDialog));
+        newFilePath = filePath;
+        g_free (filePath);
+    }
+    
+    gtk_widget_destroy (openSaveDialog);
     return NO_ERROR;
 }
 
@@ -340,9 +342,21 @@ int DeleteFileOrDirectory(ExtensionString filename)
     return NO_ERROR;
 }
 
+
+
 void MoveFileOrDirectoryToTrash(ExtensionString filename, CefRefPtr<CefBrowser> browser, CefRefPtr<CefProcessMessage> response)
 {
-    // TOdO
+    int error = NO_ERROR;
+    GFile *file = g_file_new_for_path(filename.c_str());
+    GError *gerror = NULL;
+    if (!g_file_trash(file, NULL, &gerror)) {
+        error = ConvertGnomeErrorCode(gerror);
+        g_error_free(gerror);
+    }
+    g_object_unref(file);
+    
+    response->GetArgumentList()->SetInt(1, error);
+    browser->SendProcessMessage(PID_RENDERER, response);
 }
 
 void CloseWindow(CefRefPtr<CefBrowser> browser)
@@ -380,6 +394,51 @@ int ShowFolderInOSWindow(ExtensionString pathname)
     return NO_ERROR;
 }
 
+
+int ConvertGnomeErrorCode(GError* gerror, bool isReading) 
+{
+    if (gerror == NULL) 
+        return NO_ERROR;
+
+    if (gerror->domain == G_FILE_ERROR) {
+        switch(gerror->code) {
+        case G_FILE_ERROR_EXIST:
+            return ERR_FILE_EXISTS;
+        case G_FILE_ERROR_NOTDIR:
+            return ERR_NOT_DIRECTORY;
+        case G_FILE_ERROR_ISDIR:
+            return ERR_NOT_FILE;
+        case G_FILE_ERROR_NXIO:
+        case G_FILE_ERROR_NOENT:
+            return ERR_NOT_FOUND;
+        case G_FILE_ERROR_NOSPC:
+            return ERR_OUT_OF_SPACE;
+        case G_FILE_ERROR_INVAL:
+            return ERR_INVALID_PARAMS;
+        case G_FILE_ERROR_ROFS:
+            return ERR_CANT_WRITE;
+        case G_FILE_ERROR_BADF:
+        case G_FILE_ERROR_ACCES:
+        case G_FILE_ERROR_PERM:
+        case G_FILE_ERROR_IO:
+           return isReading ? ERR_CANT_READ : ERR_CANT_WRITE;
+        default:
+            return ERR_UNKNOWN;
+        }  
+    } else if (gerror->domain == G_IO_ERROR) {
+        switch(gerror->code) {
+        case G_IO_ERROR_NOT_FOUND:
+            return ERR_NOT_FOUND;
+        case G_IO_ERROR_NO_SPACE:
+            return ERR_OUT_OF_SPACE;
+        case G_IO_ERROR_INVALID_ARGUMENT:
+            return ERR_INVALID_PARAMS;
+        default:
+            return ERR_UNKNOWN;
+        }
+    }
+}
+
 int ConvertLinuxErrorCode(int errorCode, bool isReading)
 {
 //    printf("LINUX ERROR! %d %s\n", errorCode, strerror(errorCode));
@@ -401,6 +460,23 @@ int ConvertLinuxErrorCode(int errorCode, bool isReading)
     default:
         return ERR_UNKNOWN;
     }
+}
+
+int32 CopyFile(ExtensionString src, ExtensionString dest)
+{
+    int error = NO_ERROR;
+    GFile *source = g_file_new_for_path(src.c_str());
+    GFile *destination = g_file_new_for_path(dest.c_str());
+    GError *gerror = NULL;
+
+    if (!g_file_copy(source, destination, (GFileCopyFlags)(G_FILE_COPY_OVERWRITE|G_FILE_COPY_NOFOLLOW_SYMLINKS|G_FILE_COPY_TARGET_DEFAULT_PERMS), NULL, NULL, NULL, &gerror)) {
+        error = ConvertGnomeErrorCode(gerror);
+        g_error_free(gerror);
+    }
+    g_object_unref(source);
+    g_object_unref(destination);
+
+    return error;    
 }
 
 int32 GetPendingFilesToOpen(ExtensionString& files)

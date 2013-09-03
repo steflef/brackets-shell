@@ -1,52 +1,64 @@
 /*
  * Copyright (c) 2013 Adobe Systems Incorporated. All rights reserved.
- *  
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"), 
- * to deal in the Software without restriction, including without limitation 
- * the rights to use, copy, modify, merge, publish, distribute, sublicense, 
- * and/or sell copies of the Software, and to permit persons to whom the 
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- *  
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *  
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- * 
+ *
  */
 /*jslint regexp:true*/
 /*global module, require, process*/
 module.exports = function (grunt) {
     "use strict";
-    
+
     var common  = require("./tasks/common")(grunt),
         resolve = common.resolve,
+        platform = common.platform(),
         staging;
     
-    if (common.platform() === "mac") {
+    if (platform === "mac") {
         staging = "installer/mac/staging/<%= build.name %>.app/Contents";
-    } else if (common.platform() === "win") {
+    } else if (platform === "win") {
         staging = "installer/win/staging";
     } else {
-        staging = "installer/linux/debian/usr/lib/brackets";
+        staging = "installer/linux/debian/package-root/opt/brackets";
     }
 
     grunt.initConfig({
         "pkg":              grunt.file.readJSON("package.json"),
+        "config-json":      staging + "/www/config.json",
         "curl-dir": {
-            /* linux not supported yet */
-            /*
-            linux: {
-                dest        : "<%= cef_zip %>",
-                src         : "https://docs.google.com/file/d/0B7as0diokeHxeTNqZFIyNWZKSWM/edit?usp=sharing"
+            /* linux */
+            "cef-linux32": {
+                "dest"      : "downloads/",
+                "src"       : "http://dev.brackets.io/cef/cef_binary_<%= cef.version %>_linux32_release.zip"
             },
-            */
+            "cef-linux64": {
+                "dest"      : "downloads/",
+                "src"       : "http://dev.brackets.io/cef/cef_binary_<%= cef.version %>_linux64_release.zip"
+            },
+            "node-linux32": {
+                "dest"      : "downloads/",
+                "src"       : "http://nodejs.org/dist/v<%= node.version %>/node-v<%= node.version %>-linux-x86.tar.gz"
+            },
+            "node-linux64": {
+                "dest"      : "downloads/",
+                "src"       : "http://nodejs.org/dist/v<%= node.version %>/node-v<%= node.version %>-linux-x64.tar.gz"
+            },
             /* mac */
             "cef-mac": {
                 "dest"      : "downloads/",
@@ -71,7 +83,7 @@ module.exports = function (grunt) {
             "downloads"         : ["downloads"],
             "installer-mac"     : ["installer/mac/*.dmg"],
             "installer-win"     : ["installer/win/*.msi"],
-            "installer-linux"   : ["installer/linux/brackets.deb"],
+            "installer-linux"   : ["installer/linux/debian/*.deb"],
             "staging-mac"       : ["installer/mac/staging"],
             "staging-win"       : ["installer/win/staging"],
             "staging-linux"     : ["<%= build.staging %>"],
@@ -114,14 +126,25 @@ module.exports = function (grunt) {
                 "files": [
                     {
                         "expand"    : true,
-                        "cwd"       : "out/Release",
+                        "cwd"       : "out/Release/",
                         "src"       : [
                             "lib/**",
                             "locales/**",
+                            "node-core/**",
                             "appshell*.png",
                             "Brackets",
+                            "Brackets-node",
                             "cef.pak",
                             "devtools_resources.pak"
+                        ],
+                        "dest"      : "<%= build.staging %>"
+                    },
+                    {
+                        "expand"    : true,
+                        "cwd"       : "installer/linux/debian/",
+                        "src"       : [
+                            "brackets.desktop",
+                            "brackets"
                         ],
                         "dest"      : "<%= build.staging %>"
                     }
@@ -177,7 +200,7 @@ module.exports = function (grunt) {
             }
         },
         "cef": {
-            "version"       : "3.1453.1279"
+            "version"       : "3.1547.1419"
         },
         "node": {
             "version"       : "0.8.20"

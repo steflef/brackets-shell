@@ -385,6 +385,24 @@ void cef_main_window::RestoreWindowPlacement(int showCmd)
     ShowWindow(showCmd);
 }
 
+BOOL cef_main_window::HandleCopyData(HWND, PCOPYDATASTRUCT lpCopyData) 
+{
+	if ((lpCopyData) && (lpCopyData->dwData == ID_WM_COPYDATA_SENDOPENFILECOMMAND) && (data->cbData > 0)) {
+		// another Brackets instance requests that we open the given filename
+		std::wstring wstrFilename = (LPCWSTR)data->lpData;
+
+        // Windows Explorer might enclose the filename in double-quotes.  We need to strip these off.
+		if ((wstrFilename.front() == '\"') && wstrFilename.back() == '\"')
+			wstrFilename = wstrFilename.substr(1, wstrFilename.length() - 2);
+
+		g_handler->SendOpenFileCommand(g_handler->GetBrowser(), CefString(wstrFilename.c_str()));
+        return true;
+	}
+
+    return false;
+}
+
+
 
 LRESULT cef_main_window::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -430,6 +448,10 @@ LRESULT cef_main_window::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 		if (HandleCommand(LOWORD(wParam)))
 			return 0L;
 		break;
+    case WM_COPYDATA:
+        if (HandleCopyData((HWND)wParam, (PCOPYDATASTRUCT)lParam))
+            return 0L;
+        break;
     }
 
     LRESULT lr = cef_window::WindowProc(message, wParam, lParam);
