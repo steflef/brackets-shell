@@ -39,19 +39,6 @@ cef_main_window*    gMainWnd;
 static char         gWorkingDir[MAX_PATH] = {0};
 static wchar_t      gInitialUrl[MAX_PATH] = {0};
 
-#define FIRST_INSTANCE_MUTEX_NAME	(APP_NAME L".Shell.Instance")
-#define ID_WM_COPYDATA_SENDOPENFILECOMMAND	(WM_USER+1001)
-
-// Global Variables:
-DWORD g_appStartupTime;
-HINSTANCE hInst;   // current instance
-HACCEL hAccelTable;
-HWND hWndMain;
-std::wstring gFilesToOpen; // Filenames passed as arguments to app
-TCHAR szTitle[MAX_LOADSTRING];  // The title bar text
-TCHAR szWindowClass[MAX_LOADSTRING];  // the main window class name
-char szWorkingDir[MAX_PATH];  // The current working directory
-
 
 // Forward declarations of functions included in this code module:
 BOOL InitInstance(HINSTANCE, int);
@@ -129,28 +116,6 @@ static std::wstring GetFilenamesFromCommandLine()
     return result;
 }
 
-// EnumWindowsProc callback function
-//  - searches for an already running Brackets application window
-BOOL CALLBACK FindSuitableBracketsInstance(HWND hwnd, LPARAM lParam)
-{
-	ASSERT(lParam != NULL);	// must be passed an HWND pointer to return, if found
-
-	// check for the Brackets application window by class name and title
-	WCHAR cName[MAX_PATH+1] = {0}, cTitle[MAX_PATH+1] = {0};
-	::GetClassName(hwnd, cName, MAX_PATH);
-	::GetWindowText(hwnd, cTitle, MAX_PATH);
-	if ((wcscmp(cName, szWindowClass) == 0) && (wcsstr(cTitle, APP_NAME) != 0)) {
-		// found an already running instance of Brackets.  Now, check that that window
-		//   isn't currently disabled (eg. modal dialog).  If it is keep searching.
-		if ((::GetWindowLong(hwnd, GWL_STYLE) & WS_DISABLED) == 0) {
-			//return the window handle and stop searching
-			*(HWND*)lParam = hwnd;
-			return FALSE;
-		}
-	}
-
-	return TRUE;	// otherwise, continue searching
-}
 
 // forward declaration; implemented in appshell_extensions_win.cpp
 void ConvertToUnixPath(ExtensionString& filename);
@@ -182,17 +147,12 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
   // Parse command line arguments. The passed in values are ignored on Windows.
   AppInitCommandLine(0, NULL);
 
-  // Initialize global strings
-  LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-  LoadString(hInstance, IDC_CEFCLIENT, szWindowClass, MAX_LOADSTRING);
-
   // Determine if we should use an already running instance of Brackets.
   HANDLE hMutex = ::OpenMutex(MUTEX_ALL_ACCESS, FALSE, FIRST_INSTANCE_MUTEX_NAME);
   if ((hMutex != NULL) && AppGetCommandLine()->HasArguments() && (lpCmdLine != NULL)) {
 	  // for subsequent instances, re-use an already running instance if we're being called to
 	  //   open an existing file on the command-line (eg. Open With.. from Windows Explorer)
-	  HWND hFirstInstanceWnd = NULL;
-	  ::EnumWindows(FindSuitableBracketsInstance, (LPARAM)&hFirstInstanceWnd);
+	  HWND hFirstInstanceWnd = cef_main_window::FindFirstTopLevelInstance();
 	  if (hFirstInstanceWnd != NULL) {
 		  ::SetForegroundWindow(hFirstInstanceWnd);
 		  if (::IsIconic(hFirstInstanceWnd))
@@ -334,85 +294,6 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
   return result;
 }
 
-// Add trailing separator, if necessary
-void EnsureTrailingSeparator(LPWSTR pRet)
-{
-	if (!pRet)
-		return;
-
-	int len = wcslen(pRet);
-	if (len > 0 && wcscmp(&(pRet[len-1]), L"\\") != 0)
-	{
-		wcscat(pRet, L"\\");
-	}
-}
-
-// Helper method to build Registry Key string
-void GetKey(LPCWSTR pBase, LPCWSTR pGroup, LPCWSTR pApp, LPCWSTR pFolder, LPWSTR pRet)
-{
-	// Check for required params
-	ASSERT(pBase && pApp && pRet);
-	if (!pBase || !pApp || !pRet)
-		return;
-
-	// Base
-	wcscpy(pRet, pBase);
-
-	// Group (optional)
-	if (pGroup && (pGroup[0] != '\0'))
-	{
-		EnsureTrailingSeparator(pRet);
-		wcscat(pRet, pGroup);
-	}
-
-	// App name
-	EnsureTrailingSeparator(pRet);
-	wcscat(pRet, pApp);
-
-	// Folder (optional)
-	if (pFolder && (pFolder[0] != '\0'))
-	{
-		EnsureTrailingSeparator(pRet);
-		wcscat(pRet, pFolder);
-	}
-}
-
-// get integer value from registry key
-// caller can either use return value to determine success/fail, or pass a default to be used on fail
-bool GetRegistryInt(LPCWSTR pFolder, LPCWSTR pEntry, int* pDefault, int& ret)
-{
-	HKEY hKey;
-	bool result = false;
-
-	wchar_t key[MAX_PATH];
-	key[0] = '\0';
-	GetKey(PREF_APPSHELL_BASE, GROUP_NAME, APP_NAME, pFolder, (LPWSTR)&key);
-
-	if (ERROR_SUCCESS == RegOpenKeyEx(HKEY_CURRENT_USER, (LPCWSTR)key, 0, KEY_READ, &hKey))
-	{
-		DWORD dwValue = 0;
-		DWORD dwType = 0;
-		DWORD dwCount = sizeof(DWORD);
-		if (ERROR_SUCCESS == RegQueryValueEx(hKey, pEntry, NULL, &dwType, (LPBYTE)&dwValue, &dwCount))
-		{
-			result = true;
-			ASSERT(dwType == REG_DWORD);
-			ASSERT(dwCount == sizeof(dwValue));
-			ret = (int)dwValue;
-		}
-		RegCloseKey(hKey);
-	}
-
-	if (!result)
-	{
-		// couldn't read value, so use default, if specified
-		if (pDefault)
-			ret = *pDefault;
-	}
-
-	return result;
-}
-
 //
 //   FUNCTION: InitInstance(HINSTANCE, int)
 //
@@ -430,10 +311,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	return gMainWnd->Create();
 }
 
-std::string AppGetWorkingDirectory() 
-  {
+std::string AppGetWorkingDirectory() {
     return gWorkingDir;
-      }
+}
 
 CefString AppGetInitialURL() {
     return gInitialUrl;    

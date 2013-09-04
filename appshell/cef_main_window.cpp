@@ -90,6 +90,18 @@ cef_main_window::~cef_main_window()
 
 }
 
+LPCWSTR cef_main_window::GetBracketsWindowTitleText()
+{
+    bool intitialized = false;
+    static wchar_t szTitle[100] = L"";
+
+    if (!intitialized) {
+        intitialized  = (::LoadString(::gInstance, IDS_APP_TITLE, szTitle, _countof(szTitle) - 1) > 0);
+    }
+    return szTitle;
+}
+
+
 
 BOOL cef_main_window::Create() 
 {
@@ -107,10 +119,7 @@ BOOL cef_main_window::Create()
 	if (showCmd == SW_MAXIMIZE)
 	  styles |= WS_MAXIMIZE;
 
-	static TCHAR szTitle[100];
-	LoadString(::gInstance, IDS_APP_TITLE, szTitle, _countof(szTitle) - 1);	
-
-	if (!cef_window::Create(::gWindowClassname, szTitle,
+	if (!cef_window::Create(::gWindowClassname, GetBracketsWindowTitleText(),
 								styles, left, top, width, height))
 	{
 		return FALSE;
@@ -387,21 +396,52 @@ void cef_main_window::RestoreWindowPlacement(int showCmd)
 
 BOOL cef_main_window::HandleCopyData(HWND, PCOPYDATASTRUCT lpCopyData) 
 {
-	if ((lpCopyData) && (lpCopyData->dwData == ID_WM_COPYDATA_SENDOPENFILECOMMAND) && (data->cbData > 0)) {
+	if ((lpCopyData) && (lpCopyData->dwData == ID_WM_COPYDATA_SENDOPENFILECOMMAND) && (lpCopyData->cbData > 0)) {
 		// another Brackets instance requests that we open the given filename
-		std::wstring wstrFilename = (LPCWSTR)data->lpData;
+		std::wstring wstrFilename = (LPCWSTR)lpCopyData->lpData;
 
         // Windows Explorer might enclose the filename in double-quotes.  We need to strip these off.
 		if ((wstrFilename.front() == '\"') && wstrFilename.back() == '\"')
 			wstrFilename = wstrFilename.substr(1, wstrFilename.length() - 2);
 
-		g_handler->SendOpenFileCommand(g_handler->GetBrowser(), CefString(wstrFilename.c_str()));
+		gHandler->SendOpenFileCommand(gHandler->GetBrowser(), CefString(wstrFilename.c_str()));
         return true;
 	}
 
     return false;
 }
 
+// EnumWindowsProc callback function
+//  - searches for an already running Brackets application window
+BOOL CALLBACK cef_main_window::FindSuitableBracketsInstanceHelper(HWND hwnd, LPARAM lParam)
+{
+	if (lParam == NULL)
+        return FALSE;
+
+	// check for the Brackets application window by class name and title
+	WCHAR cName[MAX_PATH+1] = {0}, cTitle[MAX_PATH+1] = {0};
+	::GetClassName(hwnd, cName, MAX_PATH);
+	::GetWindowText(hwnd, cTitle, MAX_PATH);
+
+	if ((wcscmp(cName, ::gWindowClassname) == 0) && (wcsstr(cTitle, GetBracketsWindowTitleText()) != 0)) {
+		// found an already running instance of Brackets.  Now, check that that window
+		//   isn't currently disabled (eg. modal dialog).  If it is keep searching.
+		if ((::GetWindowLong(hwnd, GWL_STYLE) & WS_DISABLED) == 0) {
+			//return the window handle and stop searching
+			*(HWND*)lParam = hwnd;
+			return FALSE;
+		}
+	}
+
+	return TRUE;	// otherwise, continue searching
+}
+
+HWND cef_main_window::FindFirstTopLevelInstance()
+{
+    HWND hFirstInstanceWnd = NULL;
+    ::EnumWindows(FindSuitableBracketsInstanceHelper, (LPARAM)&hFirstInstanceWnd);
+    return hFirstInstanceWnd;
+}
 
 
 LRESULT cef_main_window::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)

@@ -29,11 +29,14 @@ public:
     virtual ~cef_main_window(void);
 
 	static HWND SafeGetCefBrowserHwnd();
+    static HWND FindFirstTopLevelInstance();
 
 	BOOL Create();
 	
 	void ShowHelp();
 	void ShowAbout();
+
+    static LPCWSTR GetBracketsWindowTitleText();
 
     virtual LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -59,6 +62,10 @@ protected:
 	virtual void PostNcDestory();
     virtual void GetCefBrowserRect(RECT& rect);
 
+    static BOOL CALLBACK FindSuitableBracketsInstanceHelper(HWND hwnd, LPARAM lParam);
+
 private:
 	static ATOM RegisterWndClass();
 };
+
+#define ID_WM_COPYDATA_SENDOPENFILECOMMAND	(WM_USER+1001)
