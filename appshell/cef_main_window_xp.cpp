@@ -41,7 +41,7 @@ static void RECT2Rect(Gdiplus::Rect& dest, const RECT& src) {
     dest.Height = ::RectHeight(src);
 }
 
-namespace ResouceImage
+namespace ResourceImage
 {
     Gdiplus::Image* FromResource(LPCWSTR lpResourceName)
     {
@@ -93,19 +93,19 @@ void cef_main_window_xp::LoadSysButtonImages()
     Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 
     if (mSysCloseButton == NULL) {
-        mSysCloseButton = ResouceImage::FromResource(MAKEINTRESOURCE(IDB_CLOSE_BUTTON));
+        mSysCloseButton = ResourceImage::FromResource(MAKEINTRESOURCE(IDB_CLOSE_BUTTON));
     }
 
     if (mSysMaximizeButton == NULL) {
-        mSysMaximizeButton = ResouceImage::FromResource(MAKEINTRESOURCE(IDB_MAX_BUTTON));
+        mSysMaximizeButton = ResourceImage::FromResource(MAKEINTRESOURCE(IDB_MAX_BUTTON));
     }
 
     if (mSysMinimizeButton == NULL) {
-        mSysMinimizeButton = ResouceImage::FromResource(MAKEINTRESOURCE(IDB_MIN_BUTTON));
+        mSysMinimizeButton = ResourceImage::FromResource(MAKEINTRESOURCE(IDB_MIN_BUTTON));
     }
 
     if (mSysRestoreButton == NULL) {
-        mSysRestoreButton = ResouceImage::FromResource(MAKEINTRESOURCE(IDB_RESTORE_BUTTON));
+        mSysRestoreButton = ResourceImage::FromResource(MAKEINTRESOURCE(IDB_RESTORE_BUTTON));
     }
 
     ::SetWindowTheme(mWnd, L"", L"");
