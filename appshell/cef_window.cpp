@@ -192,20 +192,20 @@ LRESULT cef_window::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
     return lr;
 }
 
-void cef_window::ScreenToNonClient(RECT& rect) 
+void cef_window::ScreenToNonClient(LPRECT r) const
 {
     WINDOWINFO wi ;
     ::ZeroMemory ( &wi, sizeof ( wi ) ) ;
     wi.cbSize = sizeof ( wi ) ;
     GetWindowInfo ( &wi ) ;
 
-    int height = ::RectHeight(rect);
-    int width = ::RectWidth(rect);
+    int height = ::RectHeight(*r);
+    int width = ::RectWidth(*r);
 
-    rect.top = rect.top - wi.rcWindow.top;
-    rect.left = rect.left - wi.rcWindow.left;
-    rect.bottom = rect.top + height;
-    rect.right = rect.left + width;
+    r->top = r->top - wi.rcWindow.top;
+    r->left = r->left - wi.rcWindow.left;
+    r->bottom = r->top + height;
+    r->right = r->left + width;
 }
 
 // Computes the client rect relative to the Window Rect
@@ -213,7 +213,7 @@ void cef_window::ScreenToNonClient(RECT& rect)
 void cef_window::ComputeLogicalClientRect(RECT& rectClient)
 {
     WINDOWINFO wi ;
-    ::ZeroMemory ( &wi, sizeof ( wi ) ) ;
+    ::ZeroMemory (&wi, sizeof ( wi ) ) ;
     wi.cbSize = sizeof ( wi ) ;
     GetWindowInfo ( &wi ) ;
 
@@ -226,4 +226,32 @@ void cef_window::ComputeLogicalClientRect(RECT& rectClient)
     rectClient.left = wi.rcClient.left - wi.rcWindow.left;
     rectClient.bottom = rectClient.top + height;
     rectClient.right = rectClient.left + width;
+}
+
+
+void cef_window::NonClientToScreen(LPRECT r) const
+{
+    RECT wr;
+    GetWindowRect (&wr);
+
+    r->top += wr.top;
+    r->left += wr.left;
+    r->bottom += wr.top;
+    r->right += wr.left;
+}
+
+void cef_window::ScreenToClient(LPRECT lpRect) const
+{
+	::ScreenToClient(mWnd, (LPPOINT)lpRect);
+	::ScreenToClient(mWnd, ((LPPOINT)lpRect)+1);
+	if (GetExStyle() & WS_EX_LAYOUTRTL)
+		::RectSwapLeftRight(*lpRect);
+}
+
+void cef_window::ClientToScreen(LPRECT lpRect) const
+{
+	::ClientToScreen(mWnd, (LPPOINT)lpRect);
+	::ClientToScreen(mWnd, ((LPPOINT)lpRect)+1);
+	if (GetExStyle() & WS_EX_LAYOUTRTL)
+		::RectSwapLeftRight(*lpRect);
 }

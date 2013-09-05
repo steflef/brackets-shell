@@ -73,6 +73,10 @@ cef_main_window_xp::cef_main_window_xp() :
     mSysRestoreButton(0),
     mSysMinimizeButton(0),
     mSysMaximizeButton(0),
+    mHoverSysCloseButton(0),
+    mHoverSysRestoreButton(0),
+    mHoverSysMinimizeButton(0),
+    mHoverSysMaximizeButton(0),
     mWindowIcon(0)
 {
     ::ZeroMemory(&mNcMetrics, sizeof(mNcMetrics));
@@ -106,6 +110,22 @@ void cef_main_window_xp::LoadSysButtonImages()
 
     if (mSysRestoreButton == NULL) {
         mSysRestoreButton = ResourceImage::FromResource(MAKEINTRESOURCE(IDB_RESTORE_BUTTON));
+    }
+
+    if (mHoverSysCloseButton == NULL) {
+        mHoverSysCloseButton = ResourceImage::FromResource(MAKEINTRESOURCE(IDB_CLOSE_HOVER_BUTTON));
+    }
+
+    if (mHoverSysRestoreButton == NULL) {
+        mHoverSysRestoreButton = ResourceImage::FromResource(MAKEINTRESOURCE(IDB_RESTORE_HOVER_BUTTON));
+    }
+
+    if (mHoverSysMinimizeButton == NULL) {
+        mHoverSysMinimizeButton = ResourceImage::FromResource(MAKEINTRESOURCE(IDB_MIN_HOVER_BUTTON));
+    }
+
+    if (mHoverSysMaximizeButton == NULL) {
+        mHoverSysMaximizeButton = ResourceImage::FromResource(MAKEINTRESOURCE(IDB_MAX_HOVER_BUTTON));
     }
 
     ::SetWindowTheme(mWnd, L"", L"");
@@ -350,6 +370,94 @@ BOOL cef_main_window_xp::HandleSysCommand(UINT uType)
 }
 
 
+int cef_main_window_xp::HandleNonClientHitTest(LPPOINT ptHit)
+{
+    RECT rectWindow;
+    GetWindowRect(&rectWindow);
+
+    if (!::PtInRect(&rectWindow, *ptHit)) 
+        return HTNOWHERE;
+    
+    RECT rectClient;
+    GetClientRect(&rectClient);
+    ClientToScreen(&rectClient);
+
+    if (::PtInRect(&rectClient, *ptHit)) 
+        return HTCLIENT;
+
+    RECT rectCaption;
+    ComputeWindowCaptionRect(rectCaption);
+    NonClientToScreen(&rectCaption);
+
+    if (::PtInRect(&rectCaption, *ptHit)) 
+        return HTCAPTION;
+
+    RECT rectCloseButton;
+    ComputeCloseButtonRect(rectCloseButton);
+    NonClientToScreen(&rectCloseButton);
+
+    if (::PtInRect(&rectCloseButton, *ptHit)) 
+        return HTCLOSE;
+
+    RECT rectMaximizeButton;
+    ComputeMaximizeButtonRect(rectMaximizeButton);
+    NonClientToScreen(&rectMaximizeButton);
+
+    if (::PtInRect(&rectMaximizeButton, *ptHit)) 
+        return HTMAXBUTTON;
+
+    RECT rectMinimizeButton;
+    ComputeMinimizeButtonRect(rectMinimizeButton);
+    NonClientToScreen(&rectMinimizeButton);
+
+    if (::PtInRect(&rectMinimizeButton, *ptHit)) 
+        return HTMINBUTTON;
+
+    RECT rectSysIcon;
+    ComputeWindowIconRect(rectSysIcon);
+    NonClientToScreen(&rectSysIcon);
+
+    if (::PtInRect(&rectSysIcon, *ptHit)) 
+        return HTSYSMENU;
+
+	// Left Border
+	if ( ptHit->x >= rectWindow.left && ptHit->x <= rectWindow.left + ::GetSystemMetrics (SM_CYFRAME))
+ 	{
+		// it's important that we know if the mouse is on a corner so that
+		//	the right mouse cursor is displayed
+		if ( ptHit->y <= rectWindow.top + ::GetSystemMetrics (SM_CYFRAME))
+ 			return HTTOPLEFT;
+ 
+		if ( ptHit->y >= rectWindow.bottom - ::GetSystemMetrics (SM_CYFRAME) )
+ 			return HTBOTTOMLEFT;
+ 
+ 		return HTLEFT;
+ 	}
+
+	// Right Border
+	if ( ptHit->x <= rectWindow.right && ptHit->x >= rectWindow.right - ::GetSystemMetrics (SM_CYFRAME)) 
+ 	{
+		// it's important that we know if the mouse is on a corner so that
+		//	the right mouse cursor is displayed
+		if ( ptHit->y <= rectWindow.top + ::GetSystemMetrics (SM_CYFRAME))
+ 			return HTTOPRIGHT;
+ 
+		if ( ptHit->y >= rectWindow.bottom - ::GetSystemMetrics (SM_CYFRAME))
+ 			return HTBOTTOMRIGHT;
+ 
+ 		return HTRIGHT;
+ 	}
+
+	// Top and Bottom Borders
+ 	if ( ptHit->y <= rectWindow.top + ::GetSystemMetrics (SM_CYFRAME)) 
+ 		return HTTOP;
+ 			
+	if ( ptHit->y >= rectWindow.bottom - ::GetSystemMetrics (SM_CYFRAME))
+ 		return HTBOTTOM;
+
+	return HTNOWHERE;
+}
+
 LRESULT cef_main_window_xp::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message) 
@@ -357,7 +465,7 @@ LRESULT cef_main_window_xp::WindowProc(UINT message, WPARAM wParam, LPARAM lPara
     case WM_NCCREATE:
         if (HandleNcCreate())
             return 0L;
-        break;
+        break;  
     case WM_CREATE:
         if (HandleCreate())
             return 0L;
@@ -370,6 +478,13 @@ LRESULT cef_main_window_xp::WindowProc(UINT message, WPARAM wParam, LPARAM lPara
         if (HandleNcDestroy())
             return 0L;
         break;
+
+    case WM_NCHITTEST:
+        {
+            POINT pt;
+            POINTSTOPOINT(pt, lParam);
+            return HandleNonClientHitTest(&pt);
+        }            
     }
 
     LRESULT lr = cef_main_window::WindowProc(message, wParam, lParam);

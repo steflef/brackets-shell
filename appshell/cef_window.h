@@ -31,6 +31,14 @@ class cef_menu;
 static __inline int RectWidth(const RECT &r) { return r.right - r.left; }
 static __inline int RectHeight(const RECT &r) { return r.bottom - r.top; }
 
+static __inline void RectSwapLeftRight(RECT &r) 
+{
+    LONG temp = r.left;
+	r.left = r.right;
+	r.right = temp;
+}
+
+
 class cef_window
 {
 public:
@@ -58,11 +66,17 @@ public:
     BOOL SetWindowPlacement(LPWINDOWPLACEMENT wp)
     { return ::SetWindowPlacement(mWnd, wp); }
 
-    BOOL GetWindowRect(LPRECT r)
+    BOOL GetWindowRect(LPRECT r) const
     { return ::GetWindowRect(mWnd, r); }
 
-    BOOL GetClientRect(LPRECT r)
+    BOOL GetClientRect(LPRECT r) const
     { return ::GetClientRect(mWnd, r); }
+    
+    void NonClientToScreen(LPRECT r) const;
+    void ScreenToNonClient(LPRECT r) const;
+
+    void ClientToScreen(LPRECT r) const;
+    void ScreenToClient(LPRECT lpRect) const;
 
     HDC BeginPaint(PAINTSTRUCT* ps)
     { return ::BeginPaint(mWnd, ps); }
@@ -76,22 +90,22 @@ public:
     BOOL SetProp(LPCWSTR lpString, HANDLE hData)
     { return ::SetProp(mWnd, lpString, hData); }
 
-    HANDLE GetProp(LPCWSTR lpString)
+    HANDLE GetProp(LPCWSTR lpString) const
     { return ::GetProp(mWnd, lpString); }
 
     HANDLE RemoveProp(LPCWSTR lpString)
     { return ::RemoveProp(mWnd, lpString); }
 
-    LONG GetWindowLongPtr(int nIndex) 
+    LONG GetWindowLongPtr(int nIndex)  const
     { return ::GetWindowLongPtr(mWnd, nIndex); }
 
     LONG SetWindowLongPtr(int nIndex, LONG dwNewLong) 
     { return ::SetWindowLongPtr(mWnd, nIndex, dwNewLong); }
 
-    LONG GetClassLongPtr(int nIndex)
+    LONG GetClassLongPtr(int nIndex) const
     { return ::GetClassLongPtr(mWnd, nIndex); }
 
-    BOOL GetWindowInfo (PWINDOWINFO pwi) 
+    BOOL GetWindowInfo (PWINDOWINFO pwi) const
     { return ::GetWindowInfo (mWnd, pwi); }
 
     void DragAcceptFiles(BOOL fAccept)
@@ -115,10 +129,10 @@ public:
     BOOL SetWindowPos(cef_window* insertAfter, int x, int y, int cx, int cy, UINT uFlags) 
     { return ::SetWindowPos(mWnd, insertAfter->GetSafeWnd(), x, y, cx, cy, uFlags); }
 
-    int GetWindowText(LPWSTR lpString, int nMaxCount) 
+    int GetWindowText(LPWSTR lpString, int nMaxCount)  const
     { return ::GetWindowTextW(mWnd, lpString, nMaxCount); }
 
-    int GetWindowTextLength() 
+    int GetWindowTextLength() const
     { return ::GetWindowTextLengthW(mWnd); }
 
     BOOL InvalidateRect(LPRECT lpRect, BOOL bErase = FALSE)
@@ -133,7 +147,7 @@ public:
     void SetStyle(DWORD dwStyle) 
     { SetWindowLong(GWL_STYLE, dwStyle); }
 
-    DWORD GetStyle() 
+    DWORD GetStyle() const
     { return GetWindowLong(GWL_STYLE); }
 
     void RemoveStyle(DWORD dwStyle) 
@@ -142,17 +156,17 @@ public:
     void AddStyle(DWORD dwStyle) 
     { SetStyle(GetStyle() & dwStyle); }
 
-    void SetStyleEx(DWORD dwExStyle) 
+    void SetExStyle(DWORD dwExStyle) 
     { SetWindowLong(GWL_EXSTYLE, dwExStyle); }
 
-    DWORD GetStyleEx() 
+    DWORD GetExStyle() const
     { return GetWindowLong(GWL_EXSTYLE); }
 
-    void RemoveStyleEx(DWORD dwExStyle)
-    { SetStyleEx(GetStyleEx() & ~dwExStyle); }
+    void RemoveExStyle(DWORD dwExStyle)
+    { SetExStyle(GetExStyle() & ~dwExStyle); }
 
     void AddStyleEx(DWORD dwExStyle) 
-    { SetStyleEx(GetStyleEx() & dwExStyle); }
+    { SetExStyle(GetExStyle() & dwExStyle); }
 
 protected:
     HWND mWnd;
@@ -162,6 +176,5 @@ protected:
     virtual void PostNcDestory();
 
     void ComputeLogicalClientRect(RECT& rectClient);
-    void ScreenToNonClient(RECT& rect);
 };
 

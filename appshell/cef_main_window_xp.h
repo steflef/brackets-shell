@@ -42,6 +42,9 @@ protected:
     BOOL HandleNcPaint(HRGN hUpdateRegion);
     BOOL HandleSysCommand(UINT uType);
 
+    int HandleNonClientHitTest(LPPOINT ptHit);
+
+
 private:
     void UpdateNonClientArea();
     void InitDeviceContext(HDC hdc);
@@ -63,6 +66,10 @@ private:
     Gdiplus::Image* mSysRestoreButton;
     Gdiplus::Image* mSysMinimizeButton;
     Gdiplus::Image* mSysMaximizeButton;
+    Gdiplus::Image* mHoverSysCloseButton;
+    Gdiplus::Image* mHoverSysRestoreButton;
+    Gdiplus::Image* mHoverSysMinimizeButton;
+    Gdiplus::Image* mHoverSysMaximizeButton;
 
     NONCLIENTMETRICS mNcMetrics;
     HICON            mWindowIcon;
