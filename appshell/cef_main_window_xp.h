@@ -40,6 +40,7 @@ protected:
     BOOL HandleCreate();
     BOOL HandleNcDestroy();
     BOOL HandleNcPaint(HRGN hUpdateRegion);
+    BOOL HandleSysCommand(UINT uType);
 
 private:
     void UpdateNonClientArea();

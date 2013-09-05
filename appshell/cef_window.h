@@ -130,6 +130,30 @@ public:
     BOOL IsIconic() 
     { return ::IsIconic(mWnd); }
 
+    void SetStyle(DWORD dwStyle) 
+    { SetWindowLong(GWL_STYLE, dwStyle); }
+
+    DWORD GetStyle() 
+    { return GetWindowLong(GWL_STYLE); }
+
+    void RemoveStyle(DWORD dwStyle) 
+    { SetStyle(GetStyle() & ~dwStyle); }
+    
+    void AddStyle(DWORD dwStyle) 
+    { SetStyle(GetStyle() & dwStyle); }
+
+    void SetStyleEx(DWORD dwExStyle) 
+    { SetWindowLong(GWL_EXSTYLE, dwExStyle); }
+
+    DWORD GetStyleEx() 
+    { return GetWindowLong(GWL_EXSTYLE); }
+
+    void RemoveStyleEx(DWORD dwExStyle)
+    { SetStyleEx(GetStyleEx() & ~dwExStyle); }
+
+    void AddStyleEx(DWORD dwExStyle) 
+    { SetStyleEx(GetStyleEx() & dwExStyle); }
+
 protected:
     HWND mWnd;
     WNDPROC mSuperWndProc;

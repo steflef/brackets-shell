@@ -1,4 +1,3 @@
-#pragma once
 /*************************************************************************
  *
  * ADOBE CONFIDENTIAL
@@ -17,27 +16,57 @@
  * from Adobe Systems Incorporated.
  **************************************************************************/
 #include "cef_main_window_xp.h"
+#include "resource.h"
 #include <minmax.h>
 #include <objidl.h>
 #include <GdiPlus.h>
 #include <Uxtheme.h>
+#include <Shlwapi.h>
 
 #pragma comment(lib, "gdiplus")
+
+extern HINSTANCE gInstance;
 
 // undefined windows constants for drawing
 #ifndef DCX_USESTYLE
 #define DCX_USESTYLE 0x00010000
 #endif
 
-static ULONG_PTR gdiplusToken;
+static ULONG_PTR gdiplusToken = NULL;
 
 static void RECT2Rect(Gdiplus::Rect& dest, const RECT& src) {
     dest.X = src.left;
-    dest.Y = src.top;
+    dest.Y = src.top;   
     dest.Width = ::RectWidth(src);
     dest.Height = ::RectHeight(src);
 }
 
+namespace ResouceImage
+{
+    Gdiplus::Image* FromResource(LPCWSTR lpResourceName)
+    {
+        HRSRC hResource = ::FindResource(gInstance, lpResourceName, L"PNG");
+        if (!hResource) 
+            return NULL;
+
+        HGLOBAL hData = ::LoadResource(gInstance, hResource);
+        if (!hData)
+            return NULL;
+
+        void* data = ::LockResource(hData);
+        ULONG size = ::SizeofResource(gInstance, hResource);
+
+        IStream* pStream = ::SHCreateMemStream((BYTE*)data, (UINT)size);
+
+        if (!pStream) 
+            return NULL;
+
+        Gdiplus::Image* image = Gdiplus::Image::FromStream(pStream);
+        pStream->Release();
+        return image;
+    }
+
+}
 
 cef_main_window_xp::cef_main_window_xp() :
     mSysCloseButton(0),
@@ -63,21 +92,20 @@ void cef_main_window_xp::LoadSysButtonImages()
     Gdiplus::GdiplusStartupInput gdiplusStartupInput;
     Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 
-    // TODO: Move these to resources
     if (mSysCloseButton == NULL) {
-        mSysCloseButton = Gdiplus::Image::FromFile(L"C:\\Users\\jsbooher\\Documents\\GitHub\\brackets-shell\\appshell\\res\\close.png", (BOOL)FALSE);
+        mSysCloseButton = ResouceImage::FromResource(MAKEINTRESOURCE(IDB_CLOSE_BUTTON));
     }
 
     if (mSysMaximizeButton == NULL) {
-        mSysMaximizeButton = Gdiplus::Image::FromFile(L"C:\\Users\\jsbooher\\Documents\\GitHub\\brackets-shell\\appshell\\res\\max.png", (BOOL)FALSE);
+        mSysMaximizeButton = ResouceImage::FromResource(MAKEINTRESOURCE(IDB_MAX_BUTTON));
     }
 
     if (mSysMinimizeButton == NULL) {
-        mSysMinimizeButton = Gdiplus::Image::FromFile(L"C:\\Users\\jsbooher\\Documents\\GitHub\\brackets-shell\\appshell\\res\\min.png", (BOOL)FALSE);
+        mSysMinimizeButton = ResouceImage::FromResource(MAKEINTRESOURCE(IDB_MIN_BUTTON));
     }
 
     if (mSysRestoreButton == NULL) {
-        mSysRestoreButton = Gdiplus::Image::FromFile(L"C:\\Users\\jsbooher\\Documents\\GitHub\\brackets-shell\\appshell\\res\\restore.png", (BOOL)FALSE);
+        mSysRestoreButton = ResouceImage::FromResource(MAKEINTRESOURCE(IDB_RESTORE_BUTTON));
     }
 
     ::SetWindowTheme(mWnd, L"", L"");
@@ -182,7 +210,6 @@ void cef_main_window_xp::ComputeCloseButtonRect(RECT& rect)
         top =  8;
         right = 8;
     }
-
 
     RECT wr;
     GetWindowRect(&wr);
@@ -317,6 +344,11 @@ BOOL cef_main_window_xp::HandleNcPaint(HRGN hUpdateRegion)
     return TRUE;
 }
 
+BOOL cef_main_window_xp::HandleSysCommand(UINT uType)
+{
+    return TRUE;
+}
+
 
 LRESULT cef_main_window_xp::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -345,6 +377,9 @@ LRESULT cef_main_window_xp::WindowProc(UINT message, WPARAM wParam, LPARAM lPara
     // post default message processing
     switch (message)
     {
+    case WM_SYSCOMMAND:
+        HandleSysCommand((UINT)(wParam & 0xFFF0));
+        break;
     case WM_WINDOWPOSCHANGING:
     case WM_WINDOWPOSCHANGED:
     case WM_MOVE:
