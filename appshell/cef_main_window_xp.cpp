@@ -594,12 +594,15 @@ BOOL cef_main_window_xp::HandleNcLeftButtonUp(UINT uHitTest, POINT point)
 		mNonClientData.Reset() ;
 		return TRUE;
 	case HTMAXBUTTON:
-		SendMessage (WM_SYSCOMMAND, SC_MAXIMIZE, (LPARAM)POINTTOPOINTS(point));
+        if (IsZoomed()) 
+			SendMessage (WM_SYSCOMMAND, SC_RESTORE, (LPARAM)POINTTOPOINTS(point));
+        else 
+		    SendMessage (WM_SYSCOMMAND, SC_MAXIMIZE, (LPARAM)POINTTOPOINTS(point));
 		TrackNonClientMouseEvents(false) ;
 		mNonClientData.Reset() ;
 		return TRUE;
 	case HTMINBUTTON:
-		if ( IsIconic() )
+		if (IsIconic())
 			SendMessage (WM_SYSCOMMAND, SC_RESTORE, (LPARAM)POINTTOPOINTS(point));
 		else
 			SendMessage (WM_SYSCOMMAND, SC_MINIMIZE, (LPARAM)POINTTOPOINTS(point));
