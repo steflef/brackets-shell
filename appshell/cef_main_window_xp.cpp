@@ -146,12 +146,19 @@ BOOL cef_main_window_xp::HandleCreate()
 
 BOOL cef_main_window_xp::HandleNcDestroy()
 {
+	TrackNonClientMouseEvents(false);
+
     BOOL result = cef_main_window::HandleNcDestroy();
 
     delete mSysCloseButton;
     delete mSysRestoreButton;
     delete mSysMinimizeButton;
     delete mSysMaximizeButton;
+
+    delete mHoverSysCloseButton;
+    delete mHoverSysRestoreButton;
+    delete mHoverSysMinimizeButton;
+    delete mHoverSysMaximizeButton;
 
     Gdiplus::GdiplusShutdown(gdiplusToken);
 
@@ -303,6 +310,27 @@ void cef_main_window_xp::DoDrawTitlebarText(HDC hdc)
 
 void cef_main_window_xp::DoDrawSystemIcons(HDC hdc)
 {
+    Gdiplus::Image* CloseButton = mSysCloseButton;
+    Gdiplus::Image* RestoreButton = mSysRestoreButton;
+    Gdiplus::Image* MinimizeButton = mSysMinimizeButton;
+    Gdiplus::Image* MaximizeButton = mSysMaximizeButton;
+
+    switch ( mNonClientData.mActiveButton )
+ 	{
+ 	case HTCLOSE:				
+ 		CloseButton = mHoverSysCloseButton;
+ 		break;
+ 
+ 	case HTMAXBUTTON:
+ 		RestoreButton = mHoverSysRestoreButton;
+        MaximizeButton = mHoverSysMaximizeButton;
+ 		break;
+ 
+ 	case HTMINBUTTON:
+        MinimizeButton = mHoverSysMinimizeButton;
+        break ;
+ 	}
+
     RECT rcButton;
     Gdiplus::Rect rect;
     Gdiplus::Graphics grpx(hdc);
@@ -310,21 +338,21 @@ void cef_main_window_xp::DoDrawSystemIcons(HDC hdc)
     ComputeCloseButtonRect(rcButton);
     ::RECT2Rect(rect, rcButton);
 
-    grpx.DrawImage(mSysCloseButton, rect);
+    grpx.DrawImage(CloseButton, rect);
 
     ComputeMaximizeButtonRect(rcButton);
     ::RECT2Rect(rect, rcButton);
 
     if (IsZoomed()) {
-        grpx.DrawImage(mSysRestoreButton, rect);
+        grpx.DrawImage(RestoreButton, rect);
     } else {
-        grpx.DrawImage(mSysMaximizeButton, rect);
+        grpx.DrawImage(MaximizeButton, rect);
     }
 
     ComputeMinimizeButtonRect(rcButton);
     ::RECT2Rect(rect, rcButton);
 
-    grpx.DrawImage(mSysMinimizeButton, rect);
+    grpx.DrawImage(MinimizeButton, rect);
 }
 
 
@@ -455,13 +483,160 @@ int cef_main_window_xp::HandleNonClientHitTest(LPPOINT ptHit)
 	if ( ptHit->y >= rectWindow.bottom - ::GetSystemMetrics (SM_CYFRAME))
  		return HTBOTTOM;
 
-	return HTNOWHERE;
+	return HTMENU;
 }
+
+void cef_main_window_xp::UpdateNonClientButtons () 
+{
+    HDC hdc = GetWindowDC();
+
+ 	RECT rectCloseButton ;
+ 	ComputeCloseButtonRect (rectCloseButton) ;
+ 
+ 	RECT rectMaximizeButton ;
+ 	ComputeMaximizeButtonRect ( rectMaximizeButton ) ;
+ 
+ 	RECT rectMinimizeButton ;
+ 	ComputeMinimizeButtonRect ( rectMinimizeButton ) ;
+
+	RECT rectWindow ;
+	ComputeLogicalWindowRect ( rectWindow ) ;
+    ::ExcludeClipRect (hdc, rectWindow.left, rectWindow.top, rectWindow.right, rectWindow.bottom);
+
+    RECT rectButtons;
+    rectButtons.top = rectCloseButton.top;
+    rectButtons.right = rectCloseButton.right;
+    rectButtons.bottom = rectCloseButton.bottom;
+    rectButtons.left = rectMinimizeButton.left;
+
+    HRGN hrgnUpdate = ::CreateRectRgnIndirect(&rectButtons);
+    ::SelectClipRgn(hdc, hrgnUpdate);
+    
+    DoDrawFrame(hdc);           // essentially this will erase the buttons
+    DoDrawSystemIcons(hdc);
+    ReleaseDC(hdc);
+}
+
+void cef_main_window_xp::HandleNcMouseLeave() 
+{
+	switch (mNonClientData.mActiveButton)
+	{
+		case HTCLOSE:
+		case HTMAXBUTTON:
+		case HTMINBUTTON:
+			mNonClientData.mActiveButton = HTNOWHERE;
+			mNonClientData.mButtonOver = true;
+			mNonClientData.mButtonDown = false;
+			UpdateNonClientButtons ();
+			break;
+	}
+
+	mNonClientData.Reset();
+	TrackNonClientMouseEvents(false);
+}
+
+BOOL cef_main_window_xp::HandleNcMouseMove(UINT uHitTest)
+{
+    if (mNonClientData.mActiveButton != uHitTest) 
+    {
+        mNonClientData.mActiveButton = uHitTest;
+
+ 		mNonClientData.mButtonOver = true;
+ 		mNonClientData.mButtonDown = false;
+	 		
+		UpdateNonClientButtons ();
+	 
+ 		switch (uHitTest)
+ 		{
+ 		case HTCLOSE:
+ 		case HTMAXBUTTON:
+ 		case HTMINBUTTON:
+			TrackNonClientMouseEvents();
+            return TRUE;
+ 		}
+    }
+
+    return FALSE;
+}
+BOOL cef_main_window_xp::HandleNcLeftButtonDown(UINT uHitTest)
+{
+	mNonClientData.mActiveButton = uHitTest;
+	mNonClientData.mButtonOver = true;
+	mNonClientData.mButtonDown = true;
+
+    UpdateNonClientButtons ();
+
+	switch (uHitTest)
+	{
+	case HTCLOSE:
+	case HTMAXBUTTON:
+	case HTMINBUTTON:
+		return TRUE;
+
+    default:
+        return FALSE;
+	}
+}
+
+
+BOOL cef_main_window_xp::HandleNcLeftButtonUp(UINT uHitTest, POINT point)
+{
+	mNonClientData.mButtonOver = false;
+	mNonClientData.mButtonDown = false;
+
+    UpdateNonClientButtons() ;
+
+	switch (mNonClientData.mActiveButton)
+	{
+	case HTCLOSE:
+		SendMessage (WM_SYSCOMMAND, SC_CLOSE, (LPARAM)POINTTOPOINTS(point));
+		TrackNonClientMouseEvents(false) ;
+		mNonClientData.Reset() ;
+		return TRUE;
+	case HTMAXBUTTON:
+		SendMessage (WM_SYSCOMMAND, SC_MAXIMIZE, (LPARAM)POINTTOPOINTS(point));
+		TrackNonClientMouseEvents(false) ;
+		mNonClientData.Reset() ;
+		return TRUE;
+	case HTMINBUTTON:
+		if ( IsIconic() )
+			SendMessage (WM_SYSCOMMAND, SC_RESTORE, (LPARAM)POINTTOPOINTS(point));
+		else
+			SendMessage (WM_SYSCOMMAND, SC_MINIMIZE, (LPARAM)POINTTOPOINTS(point));
+		TrackNonClientMouseEvents( false ) ;
+		mNonClientData.Reset() ;
+		return TRUE;
+	}
+    
+    mNonClientData.Reset();
+    return FALSE;
+}
+
 
 LRESULT cef_main_window_xp::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message) 
 	{
+    case WM_NCMOUSELEAVE:
+        HandleNcMouseLeave();
+        break;
+    case WM_NCMOUSEMOVE:
+        if (HandleNcMouseMove((UINT)wParam))
+            return 0L;
+        break;
+
+    case WM_NCLBUTTONDOWN:
+        if (HandleNcLeftButtonDown((UINT)wParam))
+            return 0L;
+        break;
+    case WM_NCLBUTTONUP:
+        {
+            POINT pt;
+            POINTSTOPOINT(pt, lParam);
+            if (HandleNcLeftButtonUp((UINT)wParam, pt))
+                return 0L;
+        }
+        break;
     case WM_NCCREATE:
         if (HandleNcCreate())
             return 0L;

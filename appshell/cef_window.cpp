@@ -228,6 +228,17 @@ void cef_window::ComputeLogicalClientRect(RECT& rectClient)
     rectClient.right = rectClient.left + width;
 }
 
+void cef_window::ComputeLogicalWindowRect (RECT& rectWindow)
+{
+    RECT wr;
+    GetWindowRect (&wr);
+
+    ::SetRectEmpty(&rectWindow);
+
+    rectWindow.bottom = ::RectHeight(wr);
+    rectWindow.right = ::RectWidth(wr);
+}
+
 
 void cef_window::NonClientToScreen(LPRECT r) const
 {
@@ -254,4 +265,42 @@ void cef_window::ClientToScreen(LPRECT lpRect) const
 	::ClientToScreen(mWnd, ((LPPOINT)lpRect)+1);
 	if (GetExStyle() & WS_EX_LAYOUTRTL)
 		::RectSwapLeftRight(*lpRect);
+}
+
+// Turns mouse tracking on or off
+//	we track non-client mouse events when the user moves the
+//	mouse over one of our buttons. We want a WM_NCMOUSELEAVE
+//	message so we can redraw the buttons in the non-hovered 
+//	state this method tells windows we want the WM_NCMOUSELEAVE
+//	message.  It can tell it that we don't care anymore too, 
+//	which is nice...
+BOOL cef_window::TrackNonClientMouseEvents( bool track/*=true*/) 
+{
+	TRACKMOUSEEVENT tme ;
+	::ZeroMemory( &tme, sizeof ( tme ) ) ;
+
+	tme.cbSize = sizeof ( tme ) ;
+
+	tme.dwFlags = TME_QUERY ;
+	tme.hwndTrack = mWnd ;
+	 
+	::TrackMouseEvent ( &tme ) ;
+
+	/// i.e. if we're currently tracking and the caller
+	//	 wanted to track or if we're not currently tracking and
+	//	 the caller wanted to turn off tracking then just bail
+	if ((( tme.dwFlags & TME_LEAVE ) == TME_LEAVE ) == track ) 
+			return FALSE; // nothing to do...
+
+	tme.dwFlags = TME_LEAVE|TME_NONCLIENT;
+
+	if ( !track ) 
+		tme.dwFlags |= TME_CANCEL;
+
+	// The previous call to TrackMouseEvent destroys the hwndTrack 
+	//	and cbSize members so we have to re-initialize them.
+	tme.hwndTrack = mWnd ;
+	tme.cbSize = sizeof ( tme ) ;
+
+	return ::TrackMouseEvent ( &tme );
 }

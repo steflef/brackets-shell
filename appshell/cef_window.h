@@ -51,6 +51,12 @@ public:
     virtual LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam);
     LRESULT DefaultWindowProc(UINT message, WPARAM wParam, LPARAM lParam);
 
+    LRESULT SendMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
+    { return ::SendMessage(mWnd, uMsg, wParam, lParam); }
+
+    BOOL PostMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
+    { return ::PostMessage(mWnd, uMsg, wParam, lParam); }
+
     HWND GetSafeWnd() 
     { return (this != NULL) ? mWnd : NULL; }
 
@@ -176,5 +182,8 @@ protected:
     virtual void PostNcDestory();
 
     void ComputeLogicalClientRect(RECT& rectClient);
+	void ComputeLogicalWindowRect (RECT& rectWindow);
+
+    BOOL TrackNonClientMouseEvents(bool track = true);
 };
 

@@ -27,8 +27,30 @@ namespace Gdiplus
     class Image;
 };
 
+
+
 class cef_main_window_xp : public cef_main_window
 {
+    class NonClientData
+    {
+    public:
+	    NonClientData() 
+	    {
+		    Reset() ;
+	    }
+
+	    void Reset ( void ) 
+	    {
+		    mActiveButton = 0 ;
+		    mButtonDown = false ;
+		    mButtonOver = false ;
+	    }
+
+	    UINT mActiveButton;
+	    bool mButtonDown ;
+	    bool mButtonOver ;
+    };
+
 public:
     cef_main_window_xp();
     virtual ~cef_main_window_xp();
@@ -41,12 +63,17 @@ protected:
     BOOL HandleNcDestroy();
     BOOL HandleNcPaint(HRGN hUpdateRegion);
     BOOL HandleSysCommand(UINT uType);
+    BOOL HandleNcMouseMove(UINT uHitTest);
+    BOOL HandleNcLeftButtonUp(UINT uHitTest, POINT point);
+    BOOL HandleNcLeftButtonDown(UINT uHitTest);
 
     int HandleNonClientHitTest(LPPOINT ptHit);
 
+    void HandleNcMouseLeave();
 
 private:
     void UpdateNonClientArea();
+    void UpdateNonClientButtons();
     void InitDeviceContext(HDC hdc);
     void DoPaintNonClientArea(HDC hdc);
     void DoDrawFrame(HDC hdc);
@@ -73,4 +100,5 @@ private:
 
     NONCLIENTMETRICS mNcMetrics;
     HICON            mWindowIcon;
+    NonClientData    mNonClientData;
 };
