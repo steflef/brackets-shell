@@ -67,25 +67,25 @@ protected:
     BOOL HandleNcLeftButtonUp(UINT uHitTest, POINT point);
     BOOL HandleNcLeftButtonDown(UINT uHitTest);
 
-    int HandleNonClientHitTest(LPPOINT ptHit);
+    int HandleNcHitTest(LPPOINT ptHit);
 
     void HandleNcMouseLeave();
 
-private:
     void UpdateNonClientArea();
     void UpdateNonClientButtons();
-    void InitDeviceContext(HDC hdc);
-    void DoPaintNonClientArea(HDC hdc);
-    void DoDrawFrame(HDC hdc);
-    void DoDrawSystemMenuIcon(HDC hdc);
-    void DoDrawTitlebarText(HDC hdc);
-    void DoDrawSystemIcons(HDC hdc);
 
-    void ComputeWindowIconRect(RECT& rect);
-    void ComputeWindowCaptionRect(RECT& rect);
-    void ComputeMinimizeButtonRect(RECT& rect);
-    void ComputeMaximizeButtonRect(RECT& rect);
-    void ComputeCloseButtonRect(RECT& rect);
+    virtual void InitDeviceContext(HDC hdc);
+    virtual void DoPaintNonClientArea(HDC hdc);
+    virtual void DoDrawFrame(HDC hdc);
+    virtual void DoDrawSystemMenuIcon(HDC hdc);
+    virtual void DoDrawTitlebarText(HDC hdc);
+    virtual void DoDrawSystemIcons(HDC hdc);
+
+    virtual void ComputeWindowIconRect(RECT& rect);
+    virtual void ComputeWindowCaptionRect(RECT& rect);
+    virtual void ComputeMinimizeButtonRect(RECT& rect);
+    virtual void ComputeMaximizeButtonRect(RECT& rect);
+    virtual void ComputeCloseButtonRect(RECT& rect);
 
     void LoadSysButtonImages();
 
@@ -98,7 +98,7 @@ private:
     Gdiplus::Image* mHoverSysMinimizeButton;
     Gdiplus::Image* mHoverSysMaximizeButton;
 
-    NONCLIENTMETRICS mNcMetrics;
     HICON            mWindowIcon;
     NonClientData    mNonClientData;
+    NONCLIENTMETRICS mNcMetrics;
 };

@@ -27,6 +27,7 @@
  
 #include "cef_main_window_vista.h"
 #include "cef_main_window_xp.h"
+#include "cef_themed_main_window.h"
 
 // Global Variables:
 HINSTANCE           gInstance;
@@ -307,7 +308,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) 
 {
 	gInstance = hInstance;  // Store instance handle in our global variable
-	gMainWnd = new cef_main_window_xp();
+	gMainWnd = new cef_themed_main_window();
 	return gMainWnd->Create();
 }
 

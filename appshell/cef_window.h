@@ -38,6 +38,10 @@ static __inline void RectSwapLeftRight(RECT &r)
 	r.right = temp;
 }
 
+// Undocumented Flags for GetDCEx()
+#ifndef DCX_USESTYLE
+#define DCX_USESTYLE 0x00010000
+#endif
 
 class cef_window
 {
@@ -173,6 +177,9 @@ public:
 
     void AddStyleEx(DWORD dwExStyle) 
     { SetExStyle(GetExStyle() & dwExStyle); }
+
+    BOOL GetMenuBarInfo(LONG idObject, LONG idItem, LPMENUBARINFO pmbi) 
+    { return ::GetMenuBarInfo(mWnd, idObject, idItem, pmbi); }
 
 protected:
     HWND mWnd;

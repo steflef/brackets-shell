@@ -27,11 +27,6 @@
 
 extern HINSTANCE gInstance;
 
-// undefined windows constants for drawing
-#ifndef DCX_USESTYLE
-#define DCX_USESTYLE 0x00010000
-#endif
-
 static ULONG_PTR gdiplusToken = NULL;
 
 static void RECT2Rect(Gdiplus::Rect& dest, const RECT& src) {
@@ -398,7 +393,7 @@ BOOL cef_main_window_xp::HandleSysCommand(UINT uType)
 }
 
 
-int cef_main_window_xp::HandleNonClientHitTest(LPPOINT ptHit)
+int cef_main_window_xp::HandleNcHitTest(LPPOINT ptHit)
 {
     RECT rectWindow;
     GetWindowRect(&rectWindow);
@@ -661,7 +656,7 @@ LRESULT cef_main_window_xp::WindowProc(UINT message, WPARAM wParam, LPARAM lPara
         {
             POINT pt;
             POINTSTOPOINT(pt, lParam);
-            return HandleNonClientHitTest(&pt);
+            return HandleNcHitTest(&pt);
         }            
     }
 
