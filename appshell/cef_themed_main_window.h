@@ -32,8 +32,11 @@ public:
     virtual LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam);
 
 protected:
+    int HandleNcHitTest(LPPOINT ptHit);
+
     virtual void DoPaintNonClientArea(HDC hdc);
 
     void DoDrawMenuBar(HDC hdc);
     void ComputeMenuBarRect(RECT& rect);
+    void UpdateMenuBar();
 };

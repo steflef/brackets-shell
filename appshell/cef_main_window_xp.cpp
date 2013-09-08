@@ -505,10 +505,14 @@ void cef_main_window_xp::UpdateNonClientButtons ()
     rectButtons.left = rectMinimizeButton.left;
 
     HRGN hrgnUpdate = ::CreateRectRgnIndirect(&rectButtons);
-    ::SelectClipRgn(hdc, hrgnUpdate);
-    
-    DoDrawFrame(hdc);           // essentially this will erase the buttons
-    DoDrawSystemIcons(hdc);
+
+    if (::SelectClipRgn(hdc, hrgnUpdate) != NULLREGION) {
+        DoDrawFrame(hdc);           // essentially this will erase the buttons
+        DoDrawSystemIcons(hdc);
+    }
+
+    ::DeleteObject(hrgnUpdate);
+
     ReleaseDC(hdc);
 }
 
