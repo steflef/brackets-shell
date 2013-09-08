@@ -36,7 +36,7 @@ protected:
 
     virtual void DoPaintNonClientArea(HDC hdc);
 
-    void DoDrawMenuBar(HDC hdc);
+    void DoDrawMenuBar(HDC hdc, LPPOINT lpHitTest = NULL);
     void ComputeMenuBarRect(RECT& rect);
-    void UpdateMenuBar();
+    void UpdateMenuBar(LPPOINT lpHitTest = NULL);
 };

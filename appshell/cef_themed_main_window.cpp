@@ -28,7 +28,7 @@ cef_themed_main_window::~cef_themed_main_window()
 
 }
 
-void cef_themed_main_window::DoDrawMenuBar(HDC hdc)
+void cef_themed_main_window::DoDrawMenuBar(HDC hdc, LPPOINT lpHitTest/*=NULL*/)
 {
     RECT rectBar;
 
@@ -51,7 +51,7 @@ void cef_themed_main_window::DoDrawMenuBar(HDC hdc)
     HGDIOBJ oldFont = ::SelectObject(hdc, hMenuFont);            
 
     HBRUSH hbrHighlight = ::CreateSolidBrush(RGB(247, 247, 247));
-
+    HBRUSH hbrHover = ::CreateSolidBrush(RGB(160, 160, 160));
     RECT rectText;
     ::CopyRect(&rectText, &rectBar);
     
@@ -84,8 +84,23 @@ void cef_themed_main_window::DoDrawMenuBar(HDC hdc)
 
         } else if (mmi.fState & MFS_GRAYED) {
             rgbMenuText = RGB(130, 130, 130);
-        }
+        } else if (lpHitTest) {
+            RECT rectTest;
+            ::CopyRect(&rectTest, &rectText);
+            rectTest.left += 6;
+            rectTest.right = rectTest.left + rectTemp.right;
+            NonClientToScreen(&rectTest);
 
+            if (::PtInRect(&rectTest, *lpHitTest)) {
+                RECT rectButton;
+                ::CopyRect(&rectButton, &rectText);
+                rectButton.right = rectButton.left + rectTemp.right + 12;
+
+                ::FillRect(hdc, &rectButton, hbrHover);
+
+                rgbMenuText = RGB(10, 10, 10);
+            }
+        }
         rectText.left += 6;
 
         COLORREF oldRGB = ::SetTextColor(hdc, rgbMenuText);
@@ -99,6 +114,7 @@ void cef_themed_main_window::DoDrawMenuBar(HDC hdc)
 
     ::SelectObject(hdc, oldFont);            
     ::DeleteObject(hbrHighlight);
+    ::DeleteObject(hbrHover);
     ::DeleteObject(hMenuFont);
 }
 
@@ -114,12 +130,12 @@ void cef_themed_main_window::ComputeMenuBarRect(RECT& rect)
 }
 
 
-void cef_themed_main_window::UpdateMenuBar()
+void cef_themed_main_window::UpdateMenuBar(LPPOINT lpHitTest/*=NULL*/)
 {
     HDC hdc = GetWindowDC();
 
 	RECT rectWindow ;
-	ComputeLogicalWindowRect ( rectWindow ) ;
+	ComputeLogicalWindowRect (rectWindow) ;
     ::ExcludeClipRect (hdc, rectWindow.left, rectWindow.top, rectWindow.right, rectWindow.bottom);
 
     RECT rectMenuBar;
@@ -128,7 +144,7 @@ void cef_themed_main_window::UpdateMenuBar()
 
     if (::SelectClipRgn(hdc, hrgnUpdate) != NULLREGION) {
         DoDrawFrame(hdc);           
-        DoDrawMenuBar(hdc);
+        DoDrawMenuBar(hdc, lpHitTest);
     }
 
     ::DeleteObject(hrgnUpdate);
@@ -149,7 +165,7 @@ int cef_themed_main_window::HandleNcHitTest(LPPOINT ptHit)
     int hit = cef_main_window_xp::HandleNcHitTest(ptHit);
 
     if (hit == HTMENU) {
-        UpdateMenuBar();
+        UpdateMenuBar(ptHit);
     }
 
     return hit;
@@ -168,8 +184,31 @@ LRESULT cef_themed_main_window::WindowProc(UINT message, WPARAM wParam, LPARAM l
             POINTSTOPOINT(pt, lParam);
             return HandleNcHitTest(&pt);
         }      
+
+    case WM_NCMOUSELEAVE:
+    case WM_NCACTIVATE:
     case WM_MENUSELECT:
         UpdateMenuBar();
+        break;
+
+    case WM_NCXBUTTONDOWN:
+    case WM_NCXBUTTONUP:
+    case WM_NCXBUTTONDBLCLK:
+    case WM_NCLBUTTONDOWN:
+    case WM_NCRBUTTONDOWN:
+    case WM_NCLBUTTONUP:
+    case WM_NCLBUTTONDBLCLK:
+    case WM_NCRBUTTONUP:
+    case WM_NCRBUTTONDBLCLK:
+    case WM_NCMBUTTONDOWN:
+    case WM_NCMBUTTONUP:
+    case WM_NCMBUTTONDBLCLK:
+    case WM_NCMOUSEMOVE:
+        if (wParam == HTMENU) {
+            POINT pt;
+            POINTSTOPOINT(pt, lParam);
+            UpdateMenuBar(&pt);
+        }
         break;
     }
 
