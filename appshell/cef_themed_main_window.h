@@ -32,7 +32,11 @@ public:
     virtual LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam);
 
 protected:
-    int HandleNcHitTest(LPPOINT ptHit);
+    int  HandleNcHitTest(LPPOINT ptHit);
+    BOOL HandleNcMouseMove(UINT uHitTest, LPPOINT point);
+    BOOL HandleNcLeftButtonUp(UINT uHitTest, LPPOINT point);
+    BOOL HandleNcLeftButtonDown(UINT uHitTest, LPPOINT point);
+    void HandleNcMouseLeave();
 
     virtual void DoPaintNonClientArea(HDC hdc);
 

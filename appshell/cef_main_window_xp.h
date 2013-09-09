@@ -64,7 +64,7 @@ protected:
     BOOL HandleNcPaint(HRGN hUpdateRegion);
     BOOL HandleSysCommand(UINT uType);
     BOOL HandleNcMouseMove(UINT uHitTest);
-    BOOL HandleNcLeftButtonUp(UINT uHitTest, POINT point);
+    BOOL HandleNcLeftButtonUp(UINT uHitTest, LPPOINT point);
     BOOL HandleNcLeftButtonDown(UINT uHitTest);
 
     int HandleNcHitTest(LPPOINT ptHit);

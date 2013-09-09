@@ -135,7 +135,8 @@ BOOL cef_main_window_xp::HandleNcCreate()
 // TODO This can go if we don't need it
 BOOL cef_main_window_xp::HandleCreate()
 {
-    return cef_main_window::HandleCreate();
+    BOOL result = cef_main_window::HandleCreate();
+    return result;
 }
 
 
@@ -531,7 +532,6 @@ void cef_main_window_xp::HandleNcMouseLeave()
 	}
 
 	mNonClientData.Reset();
-	TrackNonClientMouseEvents(false);
 }
 
 BOOL cef_main_window_xp::HandleNcMouseMove(UINT uHitTest)
@@ -550,13 +550,14 @@ BOOL cef_main_window_xp::HandleNcMouseMove(UINT uHitTest)
  		case HTCLOSE:
  		case HTMAXBUTTON:
  		case HTMINBUTTON:
-			TrackNonClientMouseEvents();
+            TrackNonClientMouseEvents();
             return TRUE;
  		}
     }
 
     return FALSE;
 }
+
 BOOL cef_main_window_xp::HandleNcLeftButtonDown(UINT uHitTest)
 {
 	mNonClientData.mActiveButton = uHitTest;
@@ -570,6 +571,7 @@ BOOL cef_main_window_xp::HandleNcLeftButtonDown(UINT uHitTest)
 	case HTCLOSE:
 	case HTMAXBUTTON:
 	case HTMINBUTTON:
+        TrackNonClientMouseEvents();
 		return TRUE;
 
     default:
@@ -578,7 +580,7 @@ BOOL cef_main_window_xp::HandleNcLeftButtonDown(UINT uHitTest)
 }
 
 
-BOOL cef_main_window_xp::HandleNcLeftButtonUp(UINT uHitTest, POINT point)
+BOOL cef_main_window_xp::HandleNcLeftButtonUp(UINT uHitTest, LPPOINT point)
 {
 	mNonClientData.mButtonOver = false;
 	mNonClientData.mButtonDown = false;
@@ -588,25 +590,25 @@ BOOL cef_main_window_xp::HandleNcLeftButtonUp(UINT uHitTest, POINT point)
 	switch (mNonClientData.mActiveButton)
 	{
 	case HTCLOSE:
-		SendMessage (WM_SYSCOMMAND, SC_CLOSE, (LPARAM)POINTTOPOINTS(point));
-		TrackNonClientMouseEvents(false) ;
+		SendMessage (WM_SYSCOMMAND, SC_CLOSE, (LPARAM)POINTTOPOINTS(*point));
 		mNonClientData.Reset() ;
+        TrackNonClientMouseEvents();
 		return TRUE;
 	case HTMAXBUTTON:
         if (IsZoomed()) 
-			SendMessage (WM_SYSCOMMAND, SC_RESTORE, (LPARAM)POINTTOPOINTS(point));
+			SendMessage (WM_SYSCOMMAND, SC_RESTORE, (LPARAM)POINTTOPOINTS(*point));
         else 
-		    SendMessage (WM_SYSCOMMAND, SC_MAXIMIZE, (LPARAM)POINTTOPOINTS(point));
-		TrackNonClientMouseEvents(false) ;
+		    SendMessage (WM_SYSCOMMAND, SC_MAXIMIZE, (LPARAM)POINTTOPOINTS(*point));
 		mNonClientData.Reset() ;
+        TrackNonClientMouseEvents();
 		return TRUE;
 	case HTMINBUTTON:
 		if (IsIconic())
-			SendMessage (WM_SYSCOMMAND, SC_RESTORE, (LPARAM)POINTTOPOINTS(point));
+			SendMessage (WM_SYSCOMMAND, SC_RESTORE, (LPARAM)POINTTOPOINTS(*point));
 		else
-			SendMessage (WM_SYSCOMMAND, SC_MINIMIZE, (LPARAM)POINTTOPOINTS(point));
-		TrackNonClientMouseEvents( false ) ;
+			SendMessage (WM_SYSCOMMAND, SC_MINIMIZE, (LPARAM)POINTTOPOINTS(*point));
 		mNonClientData.Reset() ;
+        TrackNonClientMouseEvents();
 		return TRUE;
 	}
     
@@ -635,7 +637,7 @@ LRESULT cef_main_window_xp::WindowProc(UINT message, WPARAM wParam, LPARAM lPara
         {
             POINT pt;
             POINTSTOPOINT(pt, lParam);
-            if (HandleNcLeftButtonUp((UINT)wParam, pt))
+            if (HandleNcLeftButtonUp((UINT)wParam, &pt))
                 return 0L;
         }
         break;

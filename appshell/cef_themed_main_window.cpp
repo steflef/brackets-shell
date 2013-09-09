@@ -163,54 +163,119 @@ void cef_themed_main_window::DoPaintNonClientArea(HDC hdc)
 int cef_themed_main_window::HandleNcHitTest(LPPOINT ptHit)
 {
     int hit = cef_main_window_xp::HandleNcHitTest(ptHit);
-
-    if (hit == HTMENU) {
+    if (hit == HTMENU) 
+    {
         UpdateMenuBar(ptHit);
+        TrackNonClientMouseEvents();
+    } else {
+        UpdateMenuBar();
     }
-
     return hit;
 }
 
+void cef_themed_main_window::HandleNcMouseLeave() 
+{
+    cef_main_window_xp::HandleNcMouseLeave();
+    UpdateMenuBar();
+}
+
+
+BOOL cef_themed_main_window::HandleNcMouseMove(UINT uHitTest, LPPOINT ptHit)
+{
+    UpdateMenuBar(ptHit);
+    if (uHitTest == HTMENU) 
+    {
+        TrackNonClientMouseEvents();
+        return TRUE;
+    } 
+
+    return cef_main_window_xp::HandleNcMouseMove(uHitTest);
+}
+
+BOOL cef_themed_main_window::HandleNcLeftButtonDown(UINT uHitTest, LPPOINT ptHit)
+{
+    UpdateMenuBar(ptHit);
+
+	if (uHitTest == HTMENU) {
+        TrackNonClientMouseEvents();
+		return FALSE;
+	} else {
+        return cef_main_window_xp::HandleNcLeftButtonDown(uHitTest);
+    }
+}
+
+BOOL cef_themed_main_window::HandleNcLeftButtonUp(UINT uHitTest, LPPOINT point)
+{
+    UpdateMenuBar(point);
+
+	if (uHitTest == HTMENU) {
+        TrackNonClientMouseEvents();
+        return TRUE;
+	} else {
+        return cef_main_window_xp::HandleNcLeftButtonUp(uHitTest, point);
+    }
+    
+}
 
 LRESULT cef_themed_main_window::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 {
-    LRESULT lr = cef_main_window_xp::WindowProc(message, wParam, lParam);
-
     switch (message) 
     {
+    case WM_NCMOUSELEAVE:
+        UpdateMenuBar();
+        break;
+    case WM_NCMOUSEMOVE:
+        {
+            POINT pt;
+            POINTSTOPOINT(pt, lParam);
+            if (HandleNcMouseMove((UINT)wParam, &pt))
+                return 0L;
+        }
+    
+        break;
     case WM_NCHITTEST:
         {
             POINT pt;
             POINTSTOPOINT(pt, lParam);
             return HandleNcHitTest(&pt);
-        }      
+        }
+    case WM_NCLBUTTONDOWN:
+        {
+            POINT pt;
+            POINTSTOPOINT(pt, lParam);
+            if (HandleNcLeftButtonDown((UINT)wParam, &pt))
+                return 0L;
+        }
+        break;
+    case WM_NCLBUTTONUP:
+        {
+            POINT pt;
+            POINTSTOPOINT(pt, lParam);
+            if (HandleNcLeftButtonUp((UINT)wParam, &pt))
+                return 0L;
+        }
+    }
 
-    case WM_NCMOUSELEAVE:
+    LRESULT lr = cef_main_window_xp::WindowProc(message, wParam, lParam);
+
+    switch (message) 
+    {
     case WM_NCACTIVATE:
     case WM_MENUSELECT:
         UpdateMenuBar();
         break;
 
-    case WM_NCXBUTTONDOWN:
-    case WM_NCXBUTTONUP:
-    case WM_NCXBUTTONDBLCLK:
-    case WM_NCLBUTTONDOWN:
-    case WM_NCRBUTTONDOWN:
-    case WM_NCLBUTTONUP:
-    case WM_NCLBUTTONDBLCLK:
-    case WM_NCRBUTTONUP:
-    case WM_NCRBUTTONDBLCLK:
-    case WM_NCMBUTTONDOWN:
-    case WM_NCMBUTTONUP:
-    case WM_NCMBUTTONDBLCLK:
-    case WM_NCMOUSEMOVE:
-        if (wParam == HTMENU) {
+    case WM_MOUSEACTIVATE:
+        if (wParam != HTMENU) {
+            UpdateMenuBar();
+        } else {
             POINT pt;
             POINTSTOPOINT(pt, lParam);
             UpdateMenuBar(&pt);
         }
-        break;
     }
+
+
 
     return lr;
 }
