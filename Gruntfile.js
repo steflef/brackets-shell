@@ -155,7 +155,7 @@ module.exports = function (grunt) {
                     {
                         "dot"       : true,
                         "expand"    : true,
-                        "cwd"       : "<%= git.www.repo %>/src",
+                        "cwd"       : "<%= git.www.repo %>/app",
                         "src"       : ["**", "!**/.git*"],
                         "dest"      : "<%= build.staging %>/www/"
                     }
@@ -186,7 +186,7 @@ module.exports = function (grunt) {
             }
         },
         "build": {
-            "name"              : "Brackets",
+            "name"              : "STEFLEF",
             "staging"           : staging
         },
         "git": {
